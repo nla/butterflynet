@@ -1,0 +1,9 @@
+CREATE TABLE capture (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    url TEXT,
+    started TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status INTEGER,
+    reason TEXT,
+    size BIGINT,
+    PRIMARY KEY (id)
+);

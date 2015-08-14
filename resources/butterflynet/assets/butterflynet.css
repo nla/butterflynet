@@ -1,0 +1,43 @@
+
+.container {
+  background: #ffffff;
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+.navbar {
+  margin-bottom: 0px;
+}
+
+.main {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+body {
+    padding-top: 32px;
+    font-size: 16px;
+    background-color: #e3d1b7;
+    background-image: url(campbell-butterfly.jpg);
+    background-repeat: no-repeat;
+    background-position: bottom left -40px;
+    background-attachment: fixed;
+}
+
+.bgcredit {
+    text-align: center;
+    position: fixed;
+    left: 8px;
+    bottom: 0px;
+    font-size: 12px;
+    transform: rotate(30deg) translate(-25px, -30px);
+    z-index: -1;
+}
+
+.bgcredit a {
+    color: #333;
+    opacity: 0.4;
+}
+
+.bgcredit a:hover {
+    opacity: 1;
+}
