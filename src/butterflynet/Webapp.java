@@ -6,7 +6,6 @@ import freemarker.template.Configuration;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Date;
 
 import static droute.Response.*;
 import static droute.Route.*;
@@ -21,7 +20,7 @@ public class Webapp implements Handler {
             notFoundHandler("404. Alas, there is nothing here."));
 
     final Handler handler;
-    final DbPool dbPool = new DbPool(new Config());
+    final Butterflynet butterflynet = new Butterflynet();
 
     public Webapp() {
         Configuration fremarkerConfig = FreeMarkerHandler.defaultConfiguration(Webapp.class, "/butterflynet/views");
@@ -35,7 +34,7 @@ public class Webapp implements Handler {
     }
 
     Response home(Request request) {
-        try (Db db = dbPool.take()) {
+        try (Db db = butterflynet.dbPool.take()) {
             return render("home.ftl",
                     "csrfToken", Csrf.token(request),
                     "captures", db.recentCaptures());
@@ -43,9 +42,8 @@ public class Webapp implements Handler {
     }
 
     Response submit(Request request) {
-        try (Db db = dbPool.take()) {
-            db.insertCapture(request.formParam("url"), new Date());
-        }
+        butterflynet.submit(request.formParam("url"));
+
         return home(request);
     }
 

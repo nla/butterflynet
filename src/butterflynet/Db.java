@@ -20,10 +20,12 @@ public interface Db extends AutoCloseable {
     }
 
     class Capture {
+        public final long id;
         public final String url;
         public final Date started;
 
         Capture(ResultSet rs) throws SQLException {
+            id = rs.getLong("id");
             url = rs.getString("url");
             started = rs.getTimestamp("started");
         }
@@ -42,6 +44,11 @@ public interface Db extends AutoCloseable {
 
     @SqlQuery("SELECT * FROM capture ORDER BY id DESC LIMIT 50")
     List<Capture> recentCaptures();
+
+    @SqlUpdate("UPDATE capture SET archived = :archived, status = :status, reason = :reason, size = :size WHERE id = :id")
+    int setCaptureArchived(@Bind("id") long id, @Bind("archived") Date archived, @Bind("status") int status, @Bind("reason") String reason, @Bind("size") long size);
+
+    void setCaptureFailed(long id, Date date, String message);
 
     void close();
 
