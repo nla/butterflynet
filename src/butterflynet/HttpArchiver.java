@@ -4,6 +4,7 @@ import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.protocol.HTTP;
 import org.archive.format.warc.WARCConstants;
 import org.archive.io.warc.*;
 import org.archive.uid.UUIDGenerator;
@@ -22,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
+import static org.apache.http.HttpVersion.HTTP_1_0;
 import static org.archive.format.warc.WARCConstants.*;
 
 public class HttpArchiver {
@@ -42,8 +44,10 @@ public class HttpArchiver {
         warcPool = new WARCWriterPool(warcSettings, MAX_ACTIVE_WARCS, MAX_WAIT_MS);
     }
 
+    /**
+     * Hack to get our PID until the new process API is available in Java 9.
+     */
     static String getPid() {
-        // FIXME: replace with ProcessHandle.current().getPid() on Java 9
         return ManagementFactory.getRuntimeMXBean().getName().split("@", 2)[0];
     }
 
@@ -64,7 +68,15 @@ public class HttpArchiver {
 
     Result archive(String url) throws IOException, InterruptedException {
         Result result = new Result();
+
+        /*
+         * Use HTTP 1.0 and also add a "Connection: close" header to try to avoid chunked encoding.  We aren't
+         * going to benefit much from keepalive and it's likely some simple WARC tools would be confused by it.
+         */
         HttpGet request = new HttpGet(url);
+        request.setProtocolVersion(HTTP_1_0);
+        request.addHeader(HTTP.CONN_DIRECTIVE, HTTP.CONN_CLOSE);
+
         Recorder recorder = new Recorder(new File(System.getProperty("java.io.tmpdir")), "butterflynet-http-");
         Date date = new Date();
         String timestamp = ArchiveUtils.getLog14Date(date);

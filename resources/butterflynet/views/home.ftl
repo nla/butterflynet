@@ -15,6 +15,7 @@
     <colgroup>
         <col>
         <col>
+        <col>
         <col width="200px">
     </colgroup>
     <thead>
@@ -24,13 +25,16 @@
         [#list captures as capture]
             <tr>
                 <td>${capture.url}<br>
+                    [#if capture.state == 0]
                     <div class="progress">
                         <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
                         </div>
                     </div>
+                    [/#if]
 
                 </td>
                 <td></td>
+                <td>${capture.getStateName()} [#if capture.status != 0](${capture.status!""} ${capture.reason!""})[/#if]</td>
                 <td><abbr class="timeago" title="${capture.started?string.iso}">${capture.started}</abbr></td>
             </tr>
         [/#list]

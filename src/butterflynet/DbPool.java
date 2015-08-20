@@ -5,7 +5,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
-import org.skife.jdbi.v2.logging.PrintStreamLog;
+import org.skife.jdbi.v2.logging.SLF4JLog;
 
 public class DbPool implements AutoCloseable {
     final HikariDataSource ds;
@@ -21,14 +21,17 @@ public class DbPool implements AutoCloseable {
         migrate();
         dbi = new DBI(ds);
         Db.registerMappers(dbi);
-        dbi.setSQLLog(new PrintStreamLog() {
+        dbi.setSQLLog(new SLF4JLog() {
             @Override
-            public void logReleaseHandle(Handle h) {
-                // suppress
+            public void logObtainHandle(long time, Handle h) {
+                // suppress unless unusually slow
+                if (time > 10) {
+                    super.logObtainHandle(time, h);
+                }
             }
 
             @Override
-            public void logObtainHandle(long time, Handle h) {
+            public void logReleaseHandle(Handle h) {
                 // suppress
             }
         });

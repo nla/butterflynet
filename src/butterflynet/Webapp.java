@@ -31,6 +31,7 @@ public class Webapp implements Handler {
         Handler handler = new FreeMarkerHandler(fremarkerConfig, routes);
         handler = Csrf.protect(handler);
         this.handler = errorHandler(handler);
+        butterflynet.startWorker();
     }
 
     Response home(Request request) {

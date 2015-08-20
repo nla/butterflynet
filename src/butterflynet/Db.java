@@ -23,11 +23,26 @@ public interface Db extends AutoCloseable {
         public final long id;
         public final String url;
         public final Date started;
+        public final int state;
+        public final String reason;
+        public final int status;
 
         Capture(ResultSet rs) throws SQLException {
             id = rs.getLong("id");
             url = rs.getString("url");
             started = rs.getTimestamp("started");
+            state = rs.getInt("state");
+            status = rs.getInt("status");
+            reason = rs.getString("reason");
+        }
+
+        public String getStateName() {
+            switch (state) {
+                case QUEUED: return "QUEUED";
+                case ARCHIVED: return "ARCHIVED";
+                case FAILED: return "FAILED";
+                default: return "UNKNOWN (" + state + ")";
+            }
         }
     }
 
@@ -45,11 +60,18 @@ public interface Db extends AutoCloseable {
     @SqlQuery("SELECT * FROM capture ORDER BY id DESC LIMIT 50")
     List<Capture> recentCaptures();
 
-    @SqlUpdate("UPDATE capture SET archived = :archived, status = :status, reason = :reason, size = :size WHERE id = :id")
+    @SqlQuery("SELECT * FROM capture WHERE state = :state LIMIT :limit")
+    List<Capture> findCapturesInState(@Bind("state") int state, @Bind("limit") int limit);
+
+    @SqlUpdate("UPDATE capture SET archived = :archived, status = :status, reason = :reason, size = :size, state = " + ARCHIVED + " WHERE id = :id")
     int setCaptureArchived(@Bind("id") long id, @Bind("archived") Date archived, @Bind("status") int status, @Bind("reason") String reason, @Bind("size") long size);
 
-    void setCaptureFailed(long id, Date date, String message);
+    @SqlUpdate("UPDATE capture SET reason = :message, state = " + FAILED + " WHERE id = :id")
+    void setCaptureFailed(@Bind("id") long id, @Bind("date") Date date, @Bind("message") String message);
 
     void close();
 
+    int QUEUED = 0;
+    int ARCHIVED = 1;
+    int FAILED = 2;
 }
