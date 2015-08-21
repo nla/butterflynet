@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class Butterflynet {
+public class Butterflynet implements AutoCloseable {
     final Logger log = LoggerFactory.getLogger(Butterflynet.class);
     final Config config = new Config();
     final DbPool dbPool = new DbPool(config);
@@ -70,5 +70,17 @@ public class Butterflynet {
         }
         startWorker();
         return id;
+    }
+
+    public void close() {
+        if (worker != null && worker.isAlive()) {
+            worker.interrupt();
+            try {
+                worker.join(1000);
+            } catch (InterruptedException e) {
+            }
+        }
+        archiver.close();
+        dbPool.close();
     }
 }

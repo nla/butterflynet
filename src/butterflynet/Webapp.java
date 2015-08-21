@@ -32,6 +32,7 @@ public class Webapp implements Handler {
     final Butterflynet butterflynet = new Butterflynet();
 
     public Webapp() {
+        Runtime.getRuntime().addShutdownHook(new Thread(butterflynet::close));
         fremarkerConfig = FreeMarkerHandler.defaultConfiguration(Webapp.class, "/butterflynet/views");
         fremarkerConfig.addAutoInclude("layout.ftl");
         BeansWrapper beansWrapper = BeansWrapper.getDefaultInstance();

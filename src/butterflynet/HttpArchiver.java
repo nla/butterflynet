@@ -31,7 +31,7 @@ import java.util.Date;
 import static org.apache.http.HttpVersion.HTTP_1_0;
 import static org.archive.format.warc.WARCConstants.*;
 
-public class HttpArchiver {
+public class HttpArchiver implements AutoCloseable {
     final Logger log = LoggerFactory.getLogger(HttpArchiver.class);
     final static UUIDGenerator uuid = new UUIDGenerator();
     final int MAX_ACTIVE_WARCS = 2;
@@ -63,6 +63,10 @@ public class HttpArchiver {
         } catch (UnknownHostException e) {
             return "localhost";
         }
+    }
+
+    public void close() {
+        warcPool.close();
     }
 
     static class Result {
