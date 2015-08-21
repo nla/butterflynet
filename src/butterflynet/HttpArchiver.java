@@ -6,16 +6,21 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.protocol.HTTP;
 import org.archive.format.warc.WARCConstants;
+import org.archive.io.RecordingInputStream;
+import org.archive.io.RecordingOutputStream;
 import org.archive.io.warc.*;
 import org.archive.uid.UUIDGenerator;
 import org.archive.util.ArchiveUtils;
 import org.archive.util.Recorder;
 import org.archive.util.anvl.ANVLRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -27,6 +32,7 @@ import static org.apache.http.HttpVersion.HTTP_1_0;
 import static org.archive.format.warc.WARCConstants.*;
 
 public class HttpArchiver {
+    final Logger log = LoggerFactory.getLogger(HttpArchiver.class);
     final static UUIDGenerator uuid = new UUIDGenerator();
     final int MAX_ACTIVE_WARCS = 2;
     final int MAX_WAIT_MS = 1000;
@@ -66,7 +72,16 @@ public class HttpArchiver {
         long size;
     }
 
-    Result archive(String url) throws IOException, InterruptedException {
+    interface ProgressTracker {
+        void register(Progress progress);
+    }
+
+    interface Progress {
+        long length();
+        long position();
+    }
+
+    Result archive(String url, ProgressTracker tracker) throws IOException, InterruptedException {
         Result result = new Result();
 
         /*
@@ -82,7 +97,11 @@ public class HttpArchiver {
         String timestamp = ArchiveUtils.getLog14Date(date);
         try (CloseableHttpClient client = RecordingHttpClient.create(recorder);
              CloseableHttpResponse response = client.execute(request)) {
-            recorder.getRecordedInput().readToEndOfContent(parseContentLength(response));
+            long contentLength = parseContentLength(response);
+            if (tracker != null) {
+                progressHack(tracker, contentLength, recorder.getRecordedInput());
+            }
+            recorder.getRecordedInput().readToEndOfContent(contentLength);
             recorder.close();
             recorder.closeRecorders();
 
@@ -100,6 +119,37 @@ public class HttpArchiver {
             warcPool.returnFile(warc);
         }
         return result;
+    }
+
+    /**
+     * Unfortunately RecordingInputStream doesn't expose progress details.  For now lets hack around it by accessing
+     * its private fields using reflection.
+     */
+    private void progressHack(ProgressTracker tracker, final long contentLength, final RecordingInputStream ris) {
+        try {
+            Field rosField = RecordingInputStream.class.getDeclaredField("recordingOutputStream");
+            rosField.setAccessible(true);
+            RecordingOutputStream ros = (RecordingOutputStream) rosField.get(ris);
+            Field positionField = RecordingOutputStream.class.getDeclaredField("position");
+            positionField.setAccessible(true);
+            tracker.register(new Progress() {
+                @Override
+                public long length() {
+                    return contentLength;
+                }
+
+                @Override
+                public long position() {
+                    try {
+                        return positionField.getLong(ros) - ris.getContentBegin();
+                    } catch (IllegalAccessException e) {
+                        return 0; // give up
+                    }
+                }
+            });
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            log.warn("Unable to access download progress", e);
+        }
     }
 
     static URI writeRequest(WARCWriter warc, String url, String timestamp, Recorder recorder, URI responseId) throws IOException {

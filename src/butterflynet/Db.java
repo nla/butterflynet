@@ -41,6 +41,7 @@ public interface Db extends AutoCloseable {
                 case QUEUED: return "QUEUED";
                 case ARCHIVED: return "ARCHIVED";
                 case FAILED: return "FAILED";
+                case DOWNLOADING: return "DOWNLOADING";
                 default: return "UNKNOWN (" + state + ")";
             }
         }
@@ -60,8 +61,11 @@ public interface Db extends AutoCloseable {
     @SqlQuery("SELECT * FROM capture ORDER BY id DESC LIMIT 50")
     List<Capture> recentCaptures();
 
-    @SqlQuery("SELECT * FROM capture WHERE state = :state LIMIT :limit")
-    List<Capture> findCapturesInState(@Bind("state") int state, @Bind("limit") int limit);
+    @SqlQuery("SELECT * FROM capture WHERE state IN (" + QUEUED + ", " + DOWNLOADING + ") LIMIT :limit")
+    List<Capture> findCapturesToArchive(@Bind("limit") int limit);
+
+    @SqlUpdate("UPDATE capture SET state = " + DOWNLOADING + " WHERE id = :id")
+    int setCaptureDownloading(@Bind("id") long id);
 
     @SqlUpdate("UPDATE capture SET archived = :archived, status = :status, reason = :reason, size = :size, state = " + ARCHIVED + " WHERE id = :id")
     int setCaptureArchived(@Bind("id") long id, @Bind("archived") Date archived, @Bind("status") int status, @Bind("reason") String reason, @Bind("size") long size);
@@ -74,4 +78,5 @@ public interface Db extends AutoCloseable {
     int QUEUED = 0;
     int ARCHIVED = 1;
     int FAILED = 2;
+    int DOWNLOADING = 3;
 }

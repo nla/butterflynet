@@ -3,9 +3,10 @@ package butterflynet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Butterflynet {
     final Logger log = LoggerFactory.getLogger(Butterflynet.class);
@@ -13,6 +14,7 @@ public class Butterflynet {
     final DbPool dbPool = new DbPool(config);
     final HttpArchiver archiver = new HttpArchiver(config.getWarcPrefix(), config.getWarcDir());
     final int batchSize = 50;
+    final Map<Long, HttpArchiver.Progress> progressMap = new ConcurrentHashMap<>();
     Thread worker;
 
     synchronized void startWorker() {
@@ -27,12 +29,15 @@ public class Butterflynet {
         List<Db.Capture> captures;
         do {
             try (Db db = dbPool.take()) {
-                captures = db.findCapturesInState(Db.QUEUED, batchSize);
+                captures = db.findCapturesToArchive(batchSize);
             }
             for (Db.Capture capture : captures) {
                 try {
                     log.debug("Begin archiving capture id={} url={}", capture.id, capture.url);
-                    HttpArchiver.Result result = archiver.archive(capture.url);
+                    try (Db db = dbPool.take()) {
+                        db.setCaptureDownloading(capture.id);
+                    }
+                    HttpArchiver.Result result = archiver.archive(capture.url, p -> progressMap.put(capture.id, p));
                     log.debug("Successfully archived capture id={} url={}", capture.id, capture.url);
                     try (Db db = dbPool.take()) {
                         db.setCaptureArchived(capture.id, result.timestamp, result.status, result.reason, result.size);
@@ -42,9 +47,15 @@ public class Butterflynet {
                         db.setCaptureFailed(capture.id, new Date(), e.getMessage());
                     }
                     log.error("Error archiving capture id={} url={}", capture.id, capture.url, e);
+                } finally {
+                    progressMap.remove(capture.id);
                 }
             }
         } while (!captures.isEmpty());
+    }
+
+    HttpArchiver.Progress getProgress(long captureId) {
+        return progressMap.get(captureId);
     }
 
     /**
@@ -59,9 +70,5 @@ public class Butterflynet {
         }
         startWorker();
         return id;
-    }
-
-    public static void main(String args[]) throws IOException, InterruptedException {
-        new Butterflynet().archiver.archive("http://localhost:8080/");
     }
 }
