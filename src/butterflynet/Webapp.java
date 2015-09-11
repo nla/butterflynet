@@ -1,15 +1,14 @@
 package butterflynet;
 
 import com.google.gson.*;
-import com.google.gson.stream.JsonWriter;
 import droute.*;
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.Configuration;
-import freemarker.template.Template;
-import freemarker.template.TemplateException;
+import riothorn.Riothorn;
 
 import java.io.*;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -23,6 +22,7 @@ public class Webapp implements Handler {
     final Handler routes = routes(
             resources("/webjars", "META-INF/resources/webjars"),
             resources("/assets", "butterflynet/assets"),
+            resources("/tags", "butterflynet/tags"),
             GET("/", this::home),
             POST("/", this::submit),
             GET("/events", this::events),
@@ -30,6 +30,26 @@ public class Webapp implements Handler {
 
     final Handler handler;
     final Butterflynet butterflynet = new Butterflynet();
+    final Riothorn riothorn = new Riothorn();
+    final Riothorn.Tag tag = riothorn.compile(slurpResource("/butterflynet/tags/capture-list.tag"));
+    final Gson gson = new GsonBuilder().registerTypeAdapter(Date.class, new DateSerializer()).create();
+
+    String slurpResource(String path) {
+        try (Reader r = new InputStreamReader(Webapp.class.getResourceAsStream(path), StandardCharsets.UTF_8)) {
+            StringBuilder sb = new StringBuilder();
+            char[] buf = new char[8192];
+            for (;;) {
+                int n = r.read(buf);
+                if (n < 0) {
+                    break;
+                }
+                sb.append(buf, 0, n);
+            }
+            return sb.toString();
+        } catch (IOException e) {
+            throw new RuntimeException("unable to read resource " + path, e);
+        }
+    }
 
     public Webapp() {
         Runtime.getRuntime().addShutdownHook(new Thread(butterflynet::close));
@@ -46,45 +66,33 @@ public class Webapp implements Handler {
 
     Response home(Request request) {
         try (Db db = butterflynet.dbPool.take()) {
-            List<CaptureProgress> captureProgressList = new ArrayList();
-            for (Db.Capture capture : db.recentCaptures()) {
-                captureProgressList.add(new CaptureProgress(capture, butterflynet.getProgress(capture.id)));
-            }
+            String tableHtml = tag.renderJson("{\"captures\":" + buildProgressList(db) + "}");
             return render("home.ftl",
                     "csrfToken", Csrf.token(request),
-                    "captureProgressList", captureProgressList);
+                    "tableHtml", tableHtml);
         }
+    }
+
+    private String buildProgressList(Db db) {
+        List<CaptureProgress> captureProgressList = new ArrayList();
+        for (Db.Capture capture : db.recentCaptures()) {
+            captureProgressList.add(new CaptureProgress(capture, butterflynet.getProgress(capture.id)));
+        }
+        return gson.toJson(captureProgressList);
     }
 
     Response events(Request request) {
         return response((Streamable)(OutputStream out) -> {
-            Gson gson = new GsonBuilder().registerTypeAdapter(Date.class, new DateSerializer()).create();
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
-            Template template = fremarkerConfig.getTemplate("capture-list.ftl");
             while (true) {
-                List<CaptureProgress> captureProgressList = new ArrayList();
+                String json;
                 try (Db db = butterflynet.dbPool.take()) {
-                    for (Db.Capture capture : db.recentCaptures()) {
-                        captureProgressList.add(new CaptureProgress(capture, butterflynet.getProgress(capture.id)));
-                    }
+                    json = buildProgressList(db);
                 }
-
-                Map<String,Object> model = new HashMap<>();
-                model.put("captureProgressList", captureProgressList);
-                StringWriter buf = new StringWriter();
-                try {
-                    template.process(model, buf);
-                } catch (TemplateException e) {
-                    throw new RuntimeException(e);
-                }
-                bw.write("event: update\r\ndata: ");
-                JsonWriter jw = new JsonWriter(bw);
-                jw.beginObject();
-                jw.name("captureList");
-                jw.value(buf.toString());
-                jw.endObject();
-                bw.write("\r\n\r\n\r\n");
-                jw.flush();
+                bw.write("event: update\r\ndata: {\"captures\":");
+                bw.write(json);
+                bw.write("}\r\n\r\n\r\n");
+                bw.flush();
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
@@ -109,22 +117,44 @@ public class Webapp implements Handler {
     }
 
     public static class CaptureProgress {
-        public final Db.Capture capture;
-        public final long length;
-        public final long position;
+        public final String originalUrl;
+        public final String archiveUrl;
+        public final Date started;
+        public final String length;
+        public final String position;
         public final double percentage;
+        public final String state;
 
         public CaptureProgress(Db.Capture capture, HttpArchiver.Progress progress) {
-            this.capture = capture;
-            if (progress != null) {
+            originalUrl = capture.url;
+            archiveUrl = capture.url; // FIXME
+
+            started = capture.started;
+            state = capture.getStateName();
+
+            long position = 0;
+            long length = 0;
+
+            if (progress == null) {
+                percentage = 0.0;
+            } else {
                 length = progress.length();
                 position = progress.position();
                 percentage = 100.0 * position / length;
-            } else {
-                length = 0;
-                position = 0;
-                percentage = 50;
             }
+
+
+            this.length = si(length);
+            this.position = si(position);
+        }
+
+        String si(long bytes) {
+            if (bytes < 1000) {
+                return bytes + " B";
+            }
+            int order = (int) (Math.log(bytes) / Math.log(1000));
+            char unit = "kMGTPE".charAt(order - 1);
+            return String.format("%.1f %sB", bytes / Math.pow(1000, order), unit);
         }
     }
 

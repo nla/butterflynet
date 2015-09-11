@@ -13,7 +13,7 @@
 <p></p><p></p>
 
 <div id="captureList">
-    [#include "capture-list.ftl"]
+    [#noescape]${tableHtml}[/#noescape]
 </div>
 
 [/@page]

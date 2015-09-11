@@ -18,7 +18,10 @@
     <script src="webjars/jquery/2.1.4/jquery.min.js"></script>
     <script src="webjars/bootstrap/3.3.4/js/bootstrap.min.js"></script>
     <script src="webjars/timeago/1.4.1/jquery.timeago.js"></script>
-    <!-- <script src="webjars/react/0.13.3/react.min.js"></script> -->
+    <script src="webjars/riot/2.2.4/riot%2bcompiler.js"></script>
+
+    <script src="tags/capture-list.tag" type="riot/tag"></script>
+
     <script src="assets/EventSource.js"></script>
     <script src="assets/butterflynet.js"></script>
 </body>
