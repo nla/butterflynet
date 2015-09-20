@@ -11,6 +11,8 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static droute.Response.*;
@@ -118,6 +120,8 @@ public class Webapp implements Handler {
     }
 
     public static class CaptureProgress {
+        static final DateTimeFormatter WAYBACK_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.US);
+
         public final String originalUrl;
         public final String archiveUrl;
         public final Date started;
@@ -128,8 +132,12 @@ public class Webapp implements Handler {
 
         public CaptureProgress(String replayUrl, Db.Capture capture, HttpArchiver.Progress progress) {
             originalUrl = capture.url;
-            archiveUrl = replayUrl + capture.url;
-
+            if (replayUrl.isEmpty()) {
+                archiveUrl = originalUrl;
+            } else {
+                String timestamp = capture.archived.toInstant().atOffset(ZoneOffset.UTC).format(WAYBACK_DATE_FORMAT);
+                archiveUrl = replayUrl + timestamp + "/" + originalUrl;
+            }
             started = capture.started;
             state = capture.getStateName();
 

@@ -23,6 +23,7 @@ public interface Db extends AutoCloseable {
         public final long id;
         public final String url;
         public final Date started;
+        public final Date archived;
         public final int state;
         public final String reason;
         public final int status;
@@ -32,6 +33,7 @@ public interface Db extends AutoCloseable {
             id = rs.getLong("id");
             url = rs.getString("url");
             started = rs.getTimestamp("started");
+            archived = rs.getTimestamp("archived");
             state = rs.getInt("state");
             status = rs.getInt("status");
             reason = rs.getString("reason");
