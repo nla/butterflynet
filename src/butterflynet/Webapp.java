@@ -76,7 +76,8 @@ public class Webapp implements Handler {
     private String buildProgressList(Db db) {
         List<CaptureProgress> captureProgressList = new ArrayList();
         for (Db.Capture capture : db.recentCaptures()) {
-            captureProgressList.add(new CaptureProgress(capture, butterflynet.getProgress(capture.id)));
+            captureProgressList.add(new CaptureProgress(butterflynet.config.getReplayUrl(),
+                    capture, butterflynet.getProgress(capture.id)));
         }
         return gson.toJson(captureProgressList);
     }
@@ -125,9 +126,9 @@ public class Webapp implements Handler {
         public final double percentage;
         public final String state;
 
-        public CaptureProgress(Db.Capture capture, HttpArchiver.Progress progress) {
+        public CaptureProgress(String replayUrl, Db.Capture capture, HttpArchiver.Progress progress) {
             originalUrl = capture.url;
-            archiveUrl = capture.url; // FIXME
+            archiveUrl = replayUrl + capture.url;
 
             started = capture.started;
             state = capture.getStateName();
@@ -135,14 +136,17 @@ public class Webapp implements Handler {
             long position = 0;
             long length = 0;
 
-            if (progress == null) {
-                percentage = 0.0;
-            } else {
+            if (capture.state == Db.ARCHIVED) {
+                percentage = 100.0;
+                length = capture.size;
+                position = length;
+            } else if (progress != null) {
                 length = progress.length();
                 position = progress.position();
                 percentage = 100.0 * position / length;
+            } else {
+                percentage = 0.0;
             }
-
 
             this.length = si(length);
             this.position = si(position);

@@ -26,6 +26,7 @@ public interface Db extends AutoCloseable {
         public final int state;
         public final String reason;
         public final int status;
+        public final long size;
 
         Capture(ResultSet rs) throws SQLException {
             id = rs.getLong("id");
@@ -34,6 +35,7 @@ public interface Db extends AutoCloseable {
             state = rs.getInt("state");
             status = rs.getInt("status");
             reason = rs.getString("reason");
+            size = rs.getLong("size");
         }
 
         public String getStateName() {

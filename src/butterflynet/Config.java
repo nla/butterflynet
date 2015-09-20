@@ -22,4 +22,8 @@ public class Config {
     public String getDbPassword() {
         return System.getenv().getOrDefault("BUTTERFLYNET_DB_PASSWORD", "butterflynet");
     }
+
+    public String getReplayUrl() {
+        return System.getenv().getOrDefault("BUTTERFLYNET_REPLAY_URL", "");
+    }
 }
