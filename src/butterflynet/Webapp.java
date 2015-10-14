@@ -28,6 +28,7 @@ public class Webapp implements Handler {
             GET("/", this::home),
             POST("/", this::submit),
             GET("/events", this::events),
+            POST("/cancel", this::cancel),
             notFoundHandler("404. Alas, there is nothing here."));
 
     final Handler handler;
@@ -122,6 +123,7 @@ public class Webapp implements Handler {
     public static class CaptureProgress {
         static final DateTimeFormatter WAYBACK_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.US);
 
+        public final long id;
         public final String originalUrl;
         public final String archiveUrl;
         public final Date started;
@@ -129,8 +131,10 @@ public class Webapp implements Handler {
         public final String position;
         public final double percentage;
         public final String state;
+        public final String reason;
 
         public CaptureProgress(String replayUrl, Db.Capture capture, HttpArchiver.Progress progress) {
+            id = capture.id;
             originalUrl = capture.url;
             if (replayUrl.isEmpty()) {
                 archiveUrl = originalUrl;
@@ -140,6 +144,7 @@ public class Webapp implements Handler {
             }
             started = capture.started;
             state = capture.getStateName();
+            reason = capture.reason;
 
             long position = 0;
             long length = 0;
@@ -172,6 +177,12 @@ public class Webapp implements Handler {
 
     Response submit(Request request) {
         butterflynet.submit(request.formParam("url"));
+        return seeOther(request.contextUri().toString());
+    }
+
+    Response cancel(Request request) {
+        long id = Long.parseLong(request.formParam("id"));
+        butterflynet.cancel(id);
         return seeOther(request.contextUri().toString());
     }
 

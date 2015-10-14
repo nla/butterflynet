@@ -48,15 +48,16 @@ abbr[title] {
 }
 
 .capture .progress {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .capture {
-  display: flex;
+
   align-items: center;
   width: 100%;
   border-top: 1px solid #eee;
-  padding: 8px;
+  padding-top: 16px;
+    padding-bottom: 16px;
 }
 
 .capture:last-child {
@@ -64,7 +65,11 @@ abbr[title] {
   margin-bottom: 16px;
 }
 
-.capture > .info {
+.capture .details {
+    display: flex;
+    margin-bottom: 8px;
+}
+.capture .details .info {
   flex-grow: 1;
   margin-right: 8px;
 }
@@ -88,4 +93,42 @@ abbr[title] {
 .new-capture-form .url-field {
   flex-grow: 1;
   margin-right: 8px;
+}
+
+.failure-reason {
+    color: #c00000;
+}
+
+.url-box.archive-url {
+    background: #f0fff0;
+}
+.url-box.archive-url a {
+    color: #1C5418;
+}
+.url-box.original-url {
+    background: #f0f0ff;
+}
+.url-box.original-url a {
+    color: #1C4D74;
+}
+
+.url-box {
+    display: flex;
+    margin-bottom: 8px;
+    align-items: center;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+}
+
+.url-box button {
+    margin: 4px;
+}
+
+.url-box span {
+    margin: 8px;
+    display: block;
+    font-weight: bold;
+}
+.url-box a {
+   flex-grow: 1;
 }

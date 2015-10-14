@@ -77,6 +77,9 @@ public interface Db extends AutoCloseable {
     @SqlUpdate("UPDATE capture SET reason = :message, state = " + FAILED + " WHERE id = :id")
     void setCaptureFailed(@Bind("id") long id, @Bind("date") Date date, @Bind("message") String message);
 
+    @SqlUpdate("UPDATE capture SET state = " + FAILED + ", reason = 'Cancelled' WHERE id = :id AND state = " + QUEUED)
+    int cancelCapture(@Bind("id") long id);
+
     void close();
 
     int QUEUED = 0;

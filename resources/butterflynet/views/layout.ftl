@@ -19,6 +19,7 @@
     <script src="webjars/bootstrap/3.3.4/js/bootstrap.min.js"></script>
     <script src="webjars/timeago/1.4.1/jquery.timeago.js"></script>
     <script src="webjars/riot/2.2.4/riot%2bcompiler.js"></script>
+    <script src="webjars/clipboard/1.3.1/dist/clipboard.js"></script>
 
     <script src="tags/capture-list.tag" type="riot/tag"></script>
 
