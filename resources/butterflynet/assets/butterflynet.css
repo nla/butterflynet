@@ -134,5 +134,13 @@ abbr[title] {
     font-weight: bold;
 }
 .url-box a {
-   flex-grow: 1;
+    flex-grow: 1;
+
+    /*
+     * min-width must be set to 0 for break-word to take effect, otherwise
+     * min-width defaults to width of the longest word.
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=1136818#c10
+     */
+    word-wrap: break-word;
+    min-width: 0px;
 }
