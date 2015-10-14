@@ -33,6 +33,10 @@ body {
     z-index: -1;
 }
 
+button {
+    white-space: nowrap;
+}
+
 .bgcredit a {
     color: #333;
     opacity: 0.4;
