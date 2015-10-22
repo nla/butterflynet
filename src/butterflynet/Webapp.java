@@ -1,5 +1,16 @@
 package butterflynet;
 
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
+import com.google.api.client.auth.oauth2.BearerToken;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.http.BasicAuthentication;
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.util.Key;
 import com.google.gson.*;
 import com.google.gson.stream.JsonWriter;
 import droute.*;
@@ -19,6 +30,9 @@ import static droute.Route.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Webapp implements Handler {
+    static final NetHttpTransport HTTP = new NetHttpTransport();
+    static final JsonFactory JSON = new GsonFactory();
+
     final Configuration fremarkerConfig;
     final Handler routes = routes(
             resources("/webjars", "META-INF/resources/webjars"),
@@ -26,10 +40,13 @@ public class Webapp implements Handler {
             GET("/", this::home),
             POST("/", this::submit),
             GET("/events", this::events),
+            GET("/login", this::login),
+            GET("/authcb", this::authcb),
             notFoundHandler("404. Alas, there is nothing here."));
 
     final Handler handler;
     final Butterflynet butterflynet = new Butterflynet();
+    final AuthorizationCodeFlow authFlow;
 
     public Webapp() {
         Runtime.getRuntime().addShutdownHook(new Thread(butterflynet::close));
@@ -41,7 +58,71 @@ public class Webapp implements Handler {
         Handler handler = new FreeMarkerHandler(fremarkerConfig, routes);
         handler = Csrf.protect(handler);
         this.handler = errorHandler(handler);
+
+        Config config = butterflynet.config;
+        authFlow = new AuthorizationCodeFlow.Builder(BearerToken.authorizationHeaderAccessMethod(),
+                HTTP, JSON,
+                new GenericUrl(config.getOAuthServer() + "/token"),
+                new BasicAuthentication(config.getOAuthClientId(), config.getOAuthClientSecret()),
+                config.getOAuthClientId(),
+                config.getOAuthServer() + "/authorize").build();
+
         butterflynet.startWorker();
+    }
+
+    public static class UserInfo {
+        @Key
+        public String sub;
+
+        @Key("preferred_username")
+        public String preferredUsername;
+
+        @Key("given_name")
+        public String givenName;
+
+        @Key("family_name")
+        public String familyName;
+
+        @Key
+        public String email;
+
+        @Key
+        public String name;
+
+        @Override
+        public String toString() {
+            return "UserInfo{" +
+                    "sub='" + sub + '\'' +
+                    ", preferredUsername='" + preferredUsername + '\'' +
+                    ", givenName='" + givenName + '\'' +
+                    ", familyName='" + familyName + '\'' +
+                    ", email='" + email + '\'' +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
+    }
+
+    Response login(Request request) {
+        return temporaryRedirect(authFlow.newAuthorizationUrl().build());
+    }
+
+    Response authcb(Request request) {
+        String code = request.queryParam("code");
+        try {
+            TokenResponse tokenResponse = authFlow.newTokenRequest(code).execute();
+            Credential credential = new Credential(BearerToken.authorizationHeaderAccessMethod())
+                    .setAccessToken(tokenResponse.getAccessToken());
+            GenericUrl url = new GenericUrl(butterflynet.config.getOAuthServer() + "/userinfo");
+            HttpResponse response = HTTP.createRequestFactory(credential)
+                    .buildGetRequest(url)
+                    .setParser(JSON.createJsonObjectParser())
+                    .execute();
+            UserInfo userInfo = response.parseAs(UserInfo.class);
+            return response("wtf " + userInfo);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return response(500, e.toString());
+        }
     }
 
     Response home(Request request) {

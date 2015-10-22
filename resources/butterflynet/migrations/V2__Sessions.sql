@@ -1,0 +1,13 @@
+CREATE TABLE user {
+  id INTEGER PRIMARY KEY,
+  username VARCHAR(256) NOT NULL CHARACTER SET ascii,
+  issuer VARCHAR(256) NOT NULL CHARACTER SET ascii,
+  subject VARCHAR(256) NOT NULL CHARACTER SET ascii,
+  name TEXT NOT NULL,
+  UNIQUE (issuer, subject)
+};
+
+CREATE TABLE session {
+  id VARCHAR(32),
+  sub VARCHAR(256),
+};

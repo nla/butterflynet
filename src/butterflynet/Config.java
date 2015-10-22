@@ -22,4 +22,16 @@ public class Config {
     public String getDbPassword() {
         return System.getenv().getOrDefault("BUTTERFLYNET_DB_PASSWORD", "butterflynet");
     }
+
+    public String getOAuthServer() {
+        return System.getenv("OAUTH_SERVER");
+    }
+
+    public String getOAuthClientId() {
+        return System.getenv("OAUTH_CLIENT_ID");
+    }
+
+    public String getOAuthClientSecret() {
+        return System.getenv("OAUTH_CLIENT_SECRET");
+    }
 }
