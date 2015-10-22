@@ -19,6 +19,9 @@ public interface Db extends AutoCloseable {
         dbi.registerMapper(new CaptureMapper());
     }
 
+    @SqlUpdate("INSERT INTO ")
+    int insertOrUpdateUser(UserInfo userInfo);
+
     class Capture {
         public final long id;
         public final String url;
