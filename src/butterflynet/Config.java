@@ -12,7 +12,7 @@ public class Config {
     }
 
     public String getDbUrl() {
-        return System.getenv().getOrDefault("BUTTERFLYNET_DB_URL", "jdbc:h2:mem:butterflynet");
+        return System.getenv().getOrDefault("BUTTERFLYNET_DB_URL", "jdbc:h2:mem:butterflynet;MODE=MYSQL;INIT=CREATE SCHEMA IF NOT EXISTS \"public\"");
     }
 
     public String getDbUser() {

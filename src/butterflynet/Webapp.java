@@ -17,6 +17,8 @@ import java.util.*;
 import static droute.Response.*;
 import static droute.Route.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class Webapp implements Handler {
     final Configuration fremarkerConfig;
@@ -57,23 +59,44 @@ public class Webapp implements Handler {
         UserInfo userInfo = oauth.authCallback(Csrf.token(request),
                 request.queryParam("code"),
                 request.queryParam("state"));
+        long duration = HOURS.toMillis(12);
+        String sessionId = createSession(userInfo, duration);
+        return Cookies.set(seeOther(request.contextPath()),
+                "id", sessionId,
+                Cookies.autosecure(request),
+                Cookies.httpOnly(),
+                Cookies.path(request.contextPath()),
+                Cookies.maxAge(MILLISECONDS.toSeconds(duration)));
+    }
+
+    private String createSession(UserInfo userInfo, long duration) {
         try (Db db = butterflynet.dbPool.take()) {
             String sessionId = Tokens.generate();
-            db.insertOrUpdateUser(userInfo);
-            db.insertSession(sessionId, userInfo.id);
+            db.upsertUser(userInfo.username, userInfo.issuer, userInfo.subject, userInfo.name, userInfo.email);
+            long expiry = System.currentTimeMillis() + duration;
+            db.insertSession(sessionId, userInfo.username, expiry);
+            return sessionId;
         }
-        return response("wtf " + userInfo);
     }
 
     Response home(Request request) {
+        UserInfo user = null;
+
         try (Db db = butterflynet.dbPool.take()) {
+            String sessionId = Cookies.get(request, "id");
+            if (sessionId != null) {
+                db.expireSessions(System.currentTimeMillis());
+                user = db.findUserBySessionId(sessionId);
+            }
+
             List<CaptureProgress> captureProgressList = new ArrayList();
             for (Db.Capture capture : db.recentCaptures()) {
                 captureProgressList.add(new CaptureProgress(capture, butterflynet.getProgress(capture.id)));
             }
             return render("home.ftl",
                     "csrfToken", Csrf.token(request),
-                    "captureProgressList", captureProgressList);
+                    "captureProgressList", captureProgressList,
+                    "user", user);
         }
     }
 

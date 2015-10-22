@@ -2,10 +2,7 @@ package butterflynet;
 
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.StatementContext;
-import org.skife.jdbi.v2.sqlobject.Bind;
-import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
-import org.skife.jdbi.v2.sqlobject.SqlQuery;
-import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import org.skife.jdbi.v2.sqlobject.*;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import java.sql.ResultSet;
@@ -17,10 +14,10 @@ public interface Db extends AutoCloseable {
 
     static void registerMappers(DBI dbi) {
         dbi.registerMapper(new CaptureMapper());
+        dbi.registerMapper(new UserInfoMapper());
     }
 
-    @SqlUpdate("INSERT INTO ")
-    int insertOrUpdateUser(UserInfo userInfo);
+
 
     class Capture {
         public final long id;
@@ -57,6 +54,18 @@ public interface Db extends AutoCloseable {
         }
     }
 
+    class UserInfoMapper implements ResultSetMapper<UserInfo> {
+        @Override
+        public UserInfo map(int index, ResultSet r, StatementContext ctx) throws SQLException {
+            UserInfo user = new UserInfo();
+            user.username = r.getString("username");
+            user.email = r.getString("email");
+            user.issuer = r.getString("issuer");
+            user.subject = r.getString("subject");
+            return user;
+        }
+    }
+
     @SqlUpdate("INSERT INTO capture SET url = :url, started = :started")
     @GetGeneratedKeys
     long insertCapture(@Bind("url") String url, @Bind("started") Date started);
@@ -75,6 +84,24 @@ public interface Db extends AutoCloseable {
 
     @SqlUpdate("UPDATE capture SET reason = :message, state = " + FAILED + " WHERE id = :id")
     void setCaptureFailed(@Bind("id") long id, @Bind("date") Date date, @Bind("message") String message);
+
+    @SqlUpdate("INSERT INTO user (username, issuer, subject, name, email) " +
+            "VALUES (:username, :issuer, :subject, :name, :email) " +
+            "ON DUPLICATE KEY UPDATE " +
+            "    issuer = VALUES(issuer)," +
+            "    subject = VALUES(subject)," +
+            "    name = VALUES(name)," +
+            "    email = VALUES(email)")
+    void upsertUser(@Bind("username") String username, @Bind("issuer") String issuer, @Bind("subject") String subject, @Bind("name") String name, @Bind("email") String email);
+
+    @SqlQuery("SELECT user.* FROM user, session WHERE user.username = session.username AND session.id = :sessionId")
+    UserInfo findUserBySessionId(@Bind("sessionId") String sessionId);
+
+    @SqlUpdate("INSERT INTO session (id, username, expiry) VALUES (:sessionId, :username, :expiry)")
+    void insertSession(@Bind("sessionId") String sessionId, @Bind("username") String username, @Bind("expiry") long expiry);
+
+    @SqlUpdate("DELETE FROM session WHERE expiry > :now")
+    void expireSessions(@Bind("now") long now);
 
     void close();
 

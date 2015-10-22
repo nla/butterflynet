@@ -10,6 +10,7 @@
 </head>
 <body>
     <div class="container main">
+        ${(user.username)!}
         [#nested/]
     </div>
     <div class="bgcredit">

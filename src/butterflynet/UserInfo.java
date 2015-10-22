@@ -4,8 +4,6 @@ import com.google.api.client.util.Key;
 
 public class UserInfo {
 
-    public int id;
-
     /*
      * The @Key annotations below map the fields from the userinfo json response from the OpenID Connect server.
      */
@@ -20,8 +18,8 @@ public class UserInfo {
     public String username;
 
     @Key
-    public String email;
+    public String name;
 
     @Key
-    public String name;
+    public String email;
 }
