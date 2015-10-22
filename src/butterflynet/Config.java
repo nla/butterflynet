@@ -34,4 +34,8 @@ public class Config {
     public String getOAuthClientSecret() {
         return System.getenv("OAUTH_CLIENT_SECRET");
     }
+
+    public String getReplayUrl() {
+        return System.getenv().getOrDefault("BUTTERFLYNET_REPLAY_URL", "");
+    }
 }

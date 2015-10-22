@@ -23,17 +23,21 @@ public interface Db extends AutoCloseable {
         public final long id;
         public final String url;
         public final Date started;
+        public final Date archived;
         public final int state;
         public final String reason;
         public final int status;
+        public final long size;
 
         Capture(ResultSet rs) throws SQLException {
             id = rs.getLong("id");
             url = rs.getString("url");
             started = rs.getTimestamp("started");
+            archived = rs.getTimestamp("archived");
             state = rs.getInt("state");
             status = rs.getInt("status");
             reason = rs.getString("reason");
+            size = rs.getLong("size");
         }
 
         public String getStateName() {
@@ -102,6 +106,9 @@ public interface Db extends AutoCloseable {
 
     @SqlUpdate("DELETE FROM session WHERE expiry > :now")
     void expireSessions(@Bind("now") long now);
+
+    @SqlUpdate("UPDATE capture SET state = " + FAILED + ", reason = 'Cancelled' WHERE id = :id AND state = " + QUEUED)
+    int cancelCapture(@Bind("id") long id);
 
     void close();
 
