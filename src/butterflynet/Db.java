@@ -104,7 +104,7 @@ public interface Db extends AutoCloseable {
     @SqlUpdate("INSERT INTO session (id, username, expiry) VALUES (:sessionId, :username, :expiry)")
     void insertSession(@Bind("sessionId") String sessionId, @Bind("username") String username, @Bind("expiry") long expiry);
 
-    @SqlUpdate("DELETE FROM session WHERE expiry > :now")
+    @SqlUpdate("DELETE FROM session WHERE expiry < :now")
     void expireSessions(@Bind("now") long now);
 
     @SqlUpdate("UPDATE capture SET state = " + FAILED + ", reason = 'Cancelled' WHERE id = :id AND state = " + QUEUED)
