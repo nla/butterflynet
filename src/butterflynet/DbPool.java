@@ -12,11 +12,15 @@ public class DbPool implements AutoCloseable {
     final DBI dbi;
 
     public DbPool(Config config) {
+        this(config.getDbUrl(), config.getDbUser(), config.getDbPassword());
+    }
+
+    public DbPool(String jdbcUrl, String user, String password) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setPoolName("ButterflynetDb");
-        hikariConfig.setJdbcUrl(config.getDbUrl());
-        hikariConfig.setUsername(config.getDbUser());
-        hikariConfig.setPassword(config.getDbPassword());
+        hikariConfig.setJdbcUrl(jdbcUrl);
+        hikariConfig.setUsername(user);
+        hikariConfig.setPassword(password);
         ds = new HikariDataSource(hikariConfig);
         migrate();
         dbi = new DBI(ds);

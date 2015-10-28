@@ -97,7 +97,7 @@ public class Webapp implements Handler {
             String sessionId = Tokens.generate();
             db.upsertUser(userInfo.username, userInfo.issuer, userInfo.subject, userInfo.name, userInfo.email);
             long expiry = System.currentTimeMillis() + duration;
-            db.insertSession(sessionId, userInfo.username, expiry);
+            db.insertSession(sessionId, userInfo.id, expiry);
             return sessionId;
         }
     }

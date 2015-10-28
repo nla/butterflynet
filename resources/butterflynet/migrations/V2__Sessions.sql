@@ -1,5 +1,6 @@
 CREATE TABLE user (
-  username VARCHAR(64) NOT NULL PRIMARY KEY,
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(64) NOT NULL,
   issuer VARCHAR(256) NOT NULL,
   subject VARCHAR(256) NOT NULL,
   name TEXT NOT NULL,
@@ -9,10 +10,10 @@ CREATE TABLE user (
 
 CREATE TABLE session (
   id VARCHAR(32) PRIMARY KEY,
-  username VARCHAR(64) NOT NULL,
+  user_id INT NOT NULL,
   expiry BIGINT NOT NULL,
 
-  FOREIGN KEY (username) REFERENCES user(username) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 );
 
 CREATE INDEX session_expiry ON session (expiry);

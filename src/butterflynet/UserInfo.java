@@ -3,6 +3,7 @@ package butterflynet;
 import com.google.api.client.util.Key;
 
 public class UserInfo {
+    public long id;
 
     /*
      * The @Key annotations below map the fields from the userinfo json response from the OpenID Connect server.

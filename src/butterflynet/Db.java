@@ -62,10 +62,12 @@ public interface Db extends AutoCloseable {
         @Override
         public UserInfo map(int index, ResultSet r, StatementContext ctx) throws SQLException {
             UserInfo user = new UserInfo();
+            user.id = r.getLong("id");
             user.username = r.getString("username");
             user.email = r.getString("email");
             user.issuer = r.getString("issuer");
             user.subject = r.getString("subject");
+            user.name = r.getString("name");
             return user;
         }
     }
@@ -92,17 +94,18 @@ public interface Db extends AutoCloseable {
     @SqlUpdate("INSERT INTO user (username, issuer, subject, name, email) " +
             "VALUES (:username, :issuer, :subject, :name, :email) " +
             "ON DUPLICATE KEY UPDATE " +
-            "    issuer = VALUES(issuer)," +
-            "    subject = VALUES(subject)," +
-            "    name = VALUES(name)," +
+            "    issuer = VALUES(issuer), " +
+            "    subject = VALUES(subject), " +
+            "    name = VALUES(name), " +
             "    email = VALUES(email)")
-    void upsertUser(@Bind("username") String username, @Bind("issuer") String issuer, @Bind("subject") String subject, @Bind("name") String name, @Bind("email") String email);
+    @GetGeneratedKeys
+    long upsertUser(@Bind("username") String username, @Bind("issuer") String issuer, @Bind("subject") String subject, @Bind("name") String name, @Bind("email") String email);
 
-    @SqlQuery("SELECT user.* FROM user, session WHERE user.username = session.username AND session.id = :sessionId")
+    @SqlQuery("SELECT user.* FROM user, session WHERE user.id = session.user_id AND session.id = :sessionId")
     UserInfo findUserBySessionId(@Bind("sessionId") String sessionId);
 
-    @SqlUpdate("INSERT INTO session (id, username, expiry) VALUES (:sessionId, :username, :expiry)")
-    void insertSession(@Bind("sessionId") String sessionId, @Bind("username") String username, @Bind("expiry") long expiry);
+    @SqlUpdate("INSERT INTO session (id, user_id, expiry) VALUES (:sessionId, :userId, :expiry)")
+    void insertSession(@Bind("sessionId") String sessionId, @Bind("userId") long userId, @Bind("expiry") long expiry);
 
     @SqlUpdate("DELETE FROM session WHERE expiry < :now")
     void expireSessions(@Bind("now") long now);
