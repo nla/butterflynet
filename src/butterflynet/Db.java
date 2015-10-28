@@ -10,7 +10,7 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
-public interface Db extends AutoCloseable {
+public abstract class Db implements AutoCloseable {
 
     static void registerMappers(DBI dbi) {
         dbi.registerMapper(new CaptureMapper());
@@ -19,7 +19,7 @@ public interface Db extends AutoCloseable {
 
 
 
-    class Capture {
+    public static class Capture {
         public final long id;
         public final String url;
         public final Date started;
@@ -51,14 +51,14 @@ public interface Db extends AutoCloseable {
         }
     }
 
-    class CaptureMapper implements ResultSetMapper<Capture> {
+    static class CaptureMapper implements ResultSetMapper<Capture> {
         @Override
         public Capture map(int i, ResultSet resultSet, StatementContext statementContext) throws SQLException {
             return new Capture(resultSet);
         }
     }
 
-    class UserInfoMapper implements ResultSetMapper<UserInfo> {
+    static class UserInfoMapper implements ResultSetMapper<UserInfo> {
         @Override
         public UserInfo map(int index, ResultSet r, StatementContext ctx) throws SQLException {
             UserInfo user = new UserInfo();
@@ -74,22 +74,22 @@ public interface Db extends AutoCloseable {
 
     @SqlUpdate("INSERT INTO capture SET url = :url, started = :started")
     @GetGeneratedKeys
-    long insertCapture(@Bind("url") String url, @Bind("started") Date started);
+    public abstract long insertCapture(@Bind("url") String url, @Bind("started") Date started);
 
     @SqlQuery("SELECT * FROM capture ORDER BY id DESC LIMIT 50")
-    List<Capture> recentCaptures();
+    public abstract List<Capture> recentCaptures();
 
     @SqlQuery("SELECT * FROM capture WHERE state IN (" + QUEUED + ", " + DOWNLOADING + ") LIMIT :limit")
-    List<Capture> findCapturesToArchive(@Bind("limit") int limit);
+    public abstract List<Capture> findCapturesToArchive(@Bind("limit") int limit);
 
     @SqlUpdate("UPDATE capture SET state = " + DOWNLOADING + " WHERE id = :id")
-    int setCaptureDownloading(@Bind("id") long id);
+    public abstract int setCaptureDownloading(@Bind("id") long id);
 
     @SqlUpdate("UPDATE capture SET archived = :archived, status = :status, reason = :reason, size = :size, state = " + ARCHIVED + " WHERE id = :id")
-    int setCaptureArchived(@Bind("id") long id, @Bind("archived") Date archived, @Bind("status") int status, @Bind("reason") String reason, @Bind("size") long size);
+    public abstract int setCaptureArchived(@Bind("id") long id, @Bind("archived") Date archived, @Bind("status") int status, @Bind("reason") String reason, @Bind("size") long size);
 
     @SqlUpdate("UPDATE capture SET reason = :message, state = " + FAILED + " WHERE id = :id")
-    void setCaptureFailed(@Bind("id") long id, @Bind("date") Date date, @Bind("message") String message);
+    public abstract void setCaptureFailed(@Bind("id") long id, @Bind("date") Date date, @Bind("message") String message);
 
     @SqlUpdate("INSERT INTO user (username, issuer, subject, name, email) " +
             "VALUES (:username, :issuer, :subject, :name, :email) " +
@@ -98,25 +98,32 @@ public interface Db extends AutoCloseable {
             "    subject = VALUES(subject), " +
             "    name = VALUES(name), " +
             "    email = VALUES(email)")
-    @GetGeneratedKeys
-    long upsertUser(@Bind("username") String username, @Bind("issuer") String issuer, @Bind("subject") String subject, @Bind("name") String name, @Bind("email") String email);
+    public abstract int upsertUserInternal(@Bind("username") String username, @Bind("issuer") String issuer, @Bind("subject") String subject, @Bind("name") String name, @Bind("email") String email);
+
+    @SqlQuery("SELECT user.id FROM user WHERE issuer = :issuer AND subject = :subject")
+    public abstract long findUserId(@Bind("issuer") String issuer, @Bind("subject") String subject);
+
+    long upsertUser(String username, String issuer, String subject, String name, String email) {
+        upsertUserInternal(username, issuer, subject, name, email);
+        return findUserId(issuer, subject);
+    }
 
     @SqlQuery("SELECT user.* FROM user, session WHERE user.id = session.user_id AND session.id = :sessionId")
-    UserInfo findUserBySessionId(@Bind("sessionId") String sessionId);
+    public abstract UserInfo findUserBySessionId(@Bind("sessionId") String sessionId);
 
     @SqlUpdate("INSERT INTO session (id, user_id, expiry) VALUES (:sessionId, :userId, :expiry)")
-    void insertSession(@Bind("sessionId") String sessionId, @Bind("userId") long userId, @Bind("expiry") long expiry);
+    public abstract void insertSession(@Bind("sessionId") String sessionId, @Bind("userId") long userId, @Bind("expiry") long expiry);
 
     @SqlUpdate("DELETE FROM session WHERE expiry < :now")
-    void expireSessions(@Bind("now") long now);
+    public abstract void expireSessions(@Bind("now") long now);
 
     @SqlUpdate("UPDATE capture SET state = " + FAILED + ", reason = 'Cancelled' WHERE id = :id AND state = " + QUEUED)
-    int cancelCapture(@Bind("id") long id);
+    public abstract int cancelCapture(@Bind("id") long id);
 
-    void close();
+    public abstract void close();
 
-    int QUEUED = 0;
-    int ARCHIVED = 1;
-    int FAILED = 2;
-    int DOWNLOADING = 3;
+    public static final int QUEUED = 0;
+    public static final int ARCHIVED = 1;
+    public static final int FAILED = 2;
+    public static final int DOWNLOADING = 3;
 }

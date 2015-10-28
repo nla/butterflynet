@@ -5,7 +5,7 @@ CREATE TABLE user (
   subject VARCHAR(256) NOT NULL,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
-  UNIQUE KEY issuer_subject_unique (issuer, subject)
+  UNIQUE issuer_subject_unique (issuer, subject)
 );
 
 CREATE TABLE session (

@@ -53,5 +53,8 @@ public class DbTest {
 
         db.expireSessions(6000);
         assertNull("sessions should expire", db.findUserBySessionId(sid));
+
+        long jimId = db.upsertUser("jim", "example.org", "joe", "Jim Testuser", "joe@example.org");
+        assertEquals(joeId, jimId);
     }
 }
