@@ -11,13 +11,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Butterflynet implements AutoCloseable {
     final Logger log = LoggerFactory.getLogger(Butterflynet.class);
-    final Config config = new Config();
-    final DbPool dbPool = new DbPool(config);
-    final HttpArchiver archiver = new HttpArchiver(config.getWarcPrefix(), config.getWarcDir());
+    final Config config;
+    final DbPool dbPool;
+    final HttpArchiver archiver;
     final int batchSize = 50;
     final Map<Long, HttpArchiver.Progress> progressMap = new ConcurrentHashMap<>();
     Thread worker;
     Long currentCapture;
+
+    public Butterflynet(Config config) {
+        this.config = config;
+        dbPool = new DbPool(config);
+        archiver = new HttpArchiver(config.getWarcPrefix(), config.getWarcDir());
+    }
 
     synchronized void startWorker() {
         if (worker == null || !worker.isAlive()) {
@@ -82,10 +88,10 @@ public class Butterflynet implements AutoCloseable {
      *
      * @return capture id of the submitted url
      */
-    public long submit(String url) {
+    public long submit(String url, long userId) {
         long id;
         try (Db db = dbPool.take()) {
-            id = db.insertCapture(url, new Date());
+            id = db.insertCapture(url, new Date(), userId);
         }
         startWorker();
         return id;

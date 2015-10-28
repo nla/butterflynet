@@ -14,10 +14,9 @@ public abstract class Db implements AutoCloseable {
 
     static void registerMappers(DBI dbi) {
         dbi.registerMapper(new CaptureMapper());
+        dbi.registerMapper(new CaptureDetailedMapper());
         dbi.registerMapper(new UserInfoMapper());
     }
-
-
 
     public static class Capture {
         public final long id;
@@ -28,6 +27,7 @@ public abstract class Db implements AutoCloseable {
         public final String reason;
         public final int status;
         public final long size;
+        public final long userId;
 
         Capture(ResultSet rs) throws SQLException {
             id = rs.getLong("id");
@@ -38,6 +38,7 @@ public abstract class Db implements AutoCloseable {
             status = rs.getInt("status");
             reason = rs.getString("reason");
             size = rs.getLong("size");
+            userId = rs.getLong("user_id");
         }
 
         public String getStateName() {
@@ -51,6 +52,15 @@ public abstract class Db implements AutoCloseable {
         }
     }
 
+    public static class CaptureDetailed extends Capture {
+        public final String username;
+
+        CaptureDetailed(ResultSet rs) throws SQLException {
+            super(rs);
+            username = rs.getString("username");
+        }
+    }
+
     static class CaptureMapper implements ResultSetMapper<Capture> {
         @Override
         public Capture map(int i, ResultSet resultSet, StatementContext statementContext) throws SQLException {
@@ -58,26 +68,26 @@ public abstract class Db implements AutoCloseable {
         }
     }
 
+    static class CaptureDetailedMapper implements ResultSetMapper<CaptureDetailed> {
+        @Override
+        public CaptureDetailed map(int i, ResultSet resultSet, StatementContext statementContext) throws SQLException {
+            return new CaptureDetailed(resultSet);
+        }
+    }
     static class UserInfoMapper implements ResultSetMapper<UserInfo> {
         @Override
         public UserInfo map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            UserInfo user = new UserInfo();
-            user.id = r.getLong("id");
-            user.username = r.getString("username");
-            user.email = r.getString("email");
-            user.issuer = r.getString("issuer");
-            user.subject = r.getString("subject");
-            user.name = r.getString("name");
-            return user;
+            return new UserInfo(r.getLong("id"), r.getString("issuer"), r.getString("subject"),
+                    r.getString("username"), r.getString("name"), r.getString("email"));
         }
     }
 
-    @SqlUpdate("INSERT INTO capture SET url = :url, started = :started")
+    @SqlUpdate("INSERT INTO capture SET url = :url, started = :started, user_id = :userId")
     @GetGeneratedKeys
-    public abstract long insertCapture(@Bind("url") String url, @Bind("started") Date started);
+    public abstract long insertCapture(@Bind("url") String url, @Bind("started") Date started, @Bind("userId") long userId);
 
-    @SqlQuery("SELECT * FROM capture ORDER BY id DESC LIMIT 50")
-    public abstract List<Capture> recentCaptures();
+    @SqlQuery("SELECT capture.*, user.username FROM capture LEFT JOIN user ON user.id = capture.user_id ORDER BY capture.id DESC LIMIT 50")
+    public abstract List<CaptureDetailed> recentCaptures();
 
     @SqlQuery("SELECT * FROM capture WHERE state IN (" + QUEUED + ", " + DOWNLOADING + ") LIMIT :limit")
     public abstract List<Capture> findCapturesToArchive(@Bind("limit") int limit);

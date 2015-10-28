@@ -1,7 +1,6 @@
 package butterflynet;
 
 import droute.Handler;
-import droute.ShotgunHandler;
 import droute.nanohttpd.NanoServer;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
@@ -62,7 +61,7 @@ public class Main {
     }
 
     private static void runWebServer(int port, String host, boolean inheritSocket) throws IOException {
-        Handler handler = new ShotgunHandler("butterflynet.Webapp");
+        Handler handler = new Webapp(); // new ShotgunHandler("butterflynet.Webapp");
         if (inheritSocket) {
             Channel channel = System.inheritedChannel();
             if (channel != null && channel instanceof ServerSocketChannel) {

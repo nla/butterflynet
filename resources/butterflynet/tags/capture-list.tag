@@ -30,6 +30,8 @@
                         <span class="failure-reason" if="{capture.state == 'FAILED'}">{capture.reason}</span>
                         &mdash;
                         <span class="start-time"><timeago time="{capture.started}"></timeago></span>
+                        &mdash;
+                        {capture.username}
                     </div>
                 </div>
             </div>

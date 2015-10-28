@@ -21,7 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-public class Webapp implements Handler {
+public class Webapp implements Handler, AutoCloseable {
+    final static long SESSION_EXPIRY_MILLIS = HOURS.toMillis(12);
+
     final Configuration fremarkerConfig;
     final Handler routes = routes(
             resources("/webjars", "META-INF/resources/webjars"),
@@ -36,10 +38,8 @@ public class Webapp implements Handler {
             notFoundHandler("404. Alas, there is nothing here."));
 
     final Handler handler;
-    final Butterflynet butterflynet = new Butterflynet();
-    final OAuth oauth = new OAuth(butterflynet.config.getOAuthServer(),
-            butterflynet.config.getOAuthClientId(),
-            butterflynet.config.getOAuthClientSecret());
+    final Butterflynet butterflynet;
+    final OAuth oauth;
     final Riothorn riothorn = new Riothorn();
     final Riothorn.Tag tag = riothorn.compile(slurpResource("/butterflynet/tags/capture-list.tag"));
     final Gson gson = new GsonBuilder().registerTypeAdapter(Date.class, new DateSerializer()).create();
@@ -62,6 +62,19 @@ public class Webapp implements Handler {
     }
 
     public Webapp() {
+        this(new Config());
+        butterflynet.startWorker();
+    }
+
+    public Webapp(Config config) {
+        butterflynet = new Butterflynet(config);
+
+        if (config.getOAuthServer() != null) {
+            oauth = new OAuth(config.getOAuthServer(), config.getOAuthClientId(), config.getOAuthClientSecret());
+        } else {
+            oauth = null;
+        }
+
         Runtime.getRuntime().addShutdownHook(new Thread(butterflynet::close));
         fremarkerConfig = FreeMarkerHandler.defaultConfiguration(Webapp.class, "/butterflynet/views");
         fremarkerConfig.addAutoInclude("layout.ftl");
@@ -71,57 +84,70 @@ public class Webapp implements Handler {
         Handler handler = new FreeMarkerHandler(fremarkerConfig, routes);
         handler = Csrf.protect(handler);
         this.handler = errorHandler(handler);
-        butterflynet.startWorker();
     }
 
     Response login(Request request) {
-        return temporaryRedirect(oauth.authUrl(Csrf.token(request)));
+        if (oauth != null) {
+            return temporaryRedirect(oauth.authUrl(Csrf.token(request)));
+        } else {
+            return createSession(request, new UserInfo(0, "anonymous", "anonymous", "anonymous", "Anonymous", "anonymous@example.org"));
+        }
     }
 
     Response authcb(Request request) {
         UserInfo userInfo = oauth.authCallback(Csrf.token(request),
                 request.queryParam("code"),
                 request.queryParam("state"));
-        long duration = HOURS.toMillis(12);
-        String sessionId = createSession(userInfo, duration);
+        return createSession(request, userInfo);
+    }
+
+    private Response createSession(Request request, UserInfo userInfo) {
+        String sessionId = createSession(userInfo, SESSION_EXPIRY_MILLIS);
         return Cookies.set(seeOther(request.contextPath()),
                 "id", sessionId,
                 Cookies.autosecure(request),
                 Cookies.httpOnly(),
                 Cookies.path(request.contextPath()),
-                Cookies.maxAge(MILLISECONDS.toSeconds(duration)));
+                Cookies.maxAge(MILLISECONDS.toSeconds(SESSION_EXPIRY_MILLIS)));
     }
 
-    private String createSession(UserInfo userInfo, long duration) {
+    String createSession(UserInfo userInfo, long duration) {
         try (Db db = butterflynet.dbPool.take()) {
             String sessionId = Tokens.generate();
-            db.upsertUser(userInfo.username, userInfo.issuer, userInfo.subject, userInfo.name, userInfo.email);
+            long userId = db.upsertUser(userInfo.username, userInfo.issuer, userInfo.subject, userInfo.name, userInfo.email);
             long expiry = System.currentTimeMillis() + duration;
-            db.insertSession(sessionId, userInfo.id, expiry);
+            db.insertSession(sessionId, userId, expiry);
             return sessionId;
         }
+    }
+
+    UserInfo currentUser(Db db, Request request) {
+        String sessionId = Cookies.get(request, "id");
+        if (sessionId != null) {
+            db.expireSessions(System.currentTimeMillis());
+            UserInfo user = db.findUserBySessionId(sessionId);
+            if (user != null) {
+                return user;
+            }
+        }
+        throw new LoginRequired();
     }
 
     Response home(Request request) {
         UserInfo user = null;
 
         try (Db db = butterflynet.dbPool.take()) {
-            String sessionId = Cookies.get(request, "id");
-            if (sessionId != null) {
-                db.expireSessions(System.currentTimeMillis());
-                user = db.findUserBySessionId(sessionId);
-            }
             String tableHtml = tag.renderJson("{\"captures\":" + buildProgressList(db) + "}");
             return render("home.ftl",
                     "csrfToken", Csrf.token(request),
                     "tableHtml", tableHtml,
-                    "user", user);
+                    "user", currentUser(db, request));
         }
     }
 
     private String buildProgressList(Db db) {
         List<CaptureProgress> captureProgressList = new ArrayList();
-        for (Db.Capture capture : db.recentCaptures()) {
+        for (Db.CaptureDetailed capture : db.recentCaptures()) {
             captureProgressList.add(new CaptureProgress(butterflynet.config.getReplayUrl(),
                     capture, butterflynet.getProgress(capture.id)));
         }
@@ -147,6 +173,10 @@ public class Webapp implements Handler {
                 }
             }
         }).withHeader("Content-Type", "text/event-stream");
+    }
+
+    public void close() {
+        butterflynet.close();
     }
 
     private static class DateSerializer implements JsonSerializer<Date> {
@@ -175,8 +205,10 @@ public class Webapp implements Handler {
         public final double percentage;
         public final String state;
         public final String reason;
+        public final String username;
+        public final long userId;
 
-        public CaptureProgress(String replayUrl, Db.Capture capture, HttpArchiver.Progress progress) {
+        public CaptureProgress(String replayUrl, Db.CaptureDetailed capture, HttpArchiver.Progress progress) {
             id = capture.id;
             originalUrl = capture.url;
             if (replayUrl.isEmpty()) {
@@ -188,6 +220,8 @@ public class Webapp implements Handler {
             started = capture.started;
             state = capture.getStateName();
             reason = capture.reason;
+            userId = capture.userId;
+            username = capture.username;
 
             long position = 0;
             long length = 0;
@@ -219,7 +253,11 @@ public class Webapp implements Handler {
     }
 
     Response submit(Request request) {
-        butterflynet.submit(request.formParam("url"));
+        UserInfo user;
+        try (Db db = butterflynet.dbPool.take()) {
+            user = currentUser(db, request);
+        }
+        butterflynet.submit(request.formParam("url"), user.id);
         return seeOther(request.contextUri().toString());
     }
 
@@ -238,6 +276,8 @@ public class Webapp implements Handler {
                 return handler.handle(request);
             } catch (NotFound e) {
                 return notFound(e.getMessage());
+            } catch (LoginRequired e) {
+                return seeOther(request.contextUri().resolve("login").toString());
             } catch (Throwable t) {
                 StringWriter out = new StringWriter();
                 t.printStackTrace();
@@ -256,5 +296,8 @@ public class Webapp implements Handler {
         public NotFound(String message) {
             super(message);
         }
+    }
+
+    static class LoginRequired extends RuntimeException {
     }
 }

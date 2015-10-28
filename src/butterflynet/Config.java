@@ -1,41 +1,56 @@
 package butterflynet;
 
 import java.io.File;
+import java.util.Map;
 
 public class Config {
+    final Map<String, String> env;
+
+    public Config() {
+        this(System.getenv());
+    }
+
+    public Config(Map<String, String> env) {
+        this.env = env;
+    }
+
     public String getWarcPrefix() {
-        return System.getenv().getOrDefault("BUTTERFLYNET_WARC_PREFIX", "WEB");
+        return env.getOrDefault("BUTTERFLYNET_WARC_PREFIX", "WEB");
     }
 
     public File getWarcDir() {
-        return new File(System.getenv().getOrDefault("BUTTERFLYNET_WARC_DIR", "./warcs/"));
+        return new File(env.getOrDefault("BUTTERFLYNET_WARC_DIR", "./warcs/"));
     }
 
     public String getDbUrl() {
-        return System.getenv().getOrDefault("BUTTERFLYNET_DB_URL", "jdbc:h2:mem:butterflynet;MODE=MYSQL;INIT=CREATE SCHEMA IF NOT EXISTS \"public\"");
+        return env.getOrDefault("BUTTERFLYNET_DB_URL", "jdbc:h2:mem:butterflynet;MODE=MYSQL;INIT=CREATE SCHEMA IF NOT EXISTS \"public\"");
     }
 
     public String getDbUser() {
-        return System.getenv().getOrDefault("BUTTERFLYNET_DB_USER", "butterflynet");
+        return env.getOrDefault("BUTTERFLYNET_DB_USER", "butterflynet");
     }
 
     public String getDbPassword() {
-        return System.getenv().getOrDefault("BUTTERFLYNET_DB_PASSWORD", "butterflynet");
+        return env.getOrDefault("BUTTERFLYNET_DB_PASSWORD", "butterflynet");
     }
 
     public String getOAuthServer() {
-        return System.getenv("OAUTH_SERVER");
+        return env.get("OAUTH_SERVER");
     }
 
     public String getOAuthClientId() {
-        return System.getenv("OAUTH_CLIENT_ID");
+        return env.get("OAUTH_CLIENT_ID");
     }
 
     public String getOAuthClientSecret() {
-        return System.getenv("OAUTH_CLIENT_SECRET");
+        return env.get("OAUTH_CLIENT_SECRET");
     }
 
     public String getReplayUrl() {
-        return System.getenv().getOrDefault("BUTTERFLYNET_REPLAY_URL", "");
+        return env.getOrDefault("BUTTERFLYNET_REPLAY_URL", "");
+    }
+
+    public boolean isWorkerEnabled() {
+        return !Boolean.valueOf(env.getOrDefault("DISABLE_WORKER", "false"));
     }
 }
