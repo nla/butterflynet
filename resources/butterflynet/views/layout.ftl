@@ -10,7 +10,6 @@
 </head>
 <body>
     <div class="container main">
-        ${(user.username)!"Not logged in"}
         [#nested/]
     </div>
     <div class="bgcredit">

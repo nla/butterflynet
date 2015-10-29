@@ -39,7 +39,7 @@
                 <form action="cancel" method="post" if="{capture.state == 'DOWNLOADING' || capture.state == 'QUEUED'}">
                     <input type="hidden" name="id" value="{capture.id}">
                     <input type="hidden" name="csrfToken" value="{parent.csrfToken}">
-                    <button><i class="glyphicon glyphicon-remove" alt="Cancel"></i> Cancel</button>
+                    <button class="btn btn-danger"><i class="glyphicon glyphicon-remove" alt="Cancel"></i> Cancel</button>
                 </form>
             </div>
         </div>
@@ -47,14 +47,14 @@
             <div class="url-box original-url">
                 <span>Original:</span>
                 <a href="{capture.originalUrl}">{capture.originalUrl}</a>
-                <button class="clipboard-button" data-clipboard-text="{capture.originalUrl}">
+                <button class="btn btn-default clipboard-button" data-clipboard-text="{capture.originalUrl}">
                     <i class="glyphicon glyphicon-copy"></i> Copy Original Link
                 </button>
             </div>
             <div class="url-box archive-url" if="{capture.state != 'FAILED'}">
                 <span>Archive:</span>
                 <a href="{capture.archiveUrl}">{capture.archiveUrl}</a>
-                <button class="clipboard-button" data-clipboard-text="{capture.originalUrl}">
+                <button class="btn btn-default clipboard-button" data-clipboard-text="{capture.originalUrl}">
                     <i class="glyphicon glyphicon-copy"></i> Copy Archive Link
                 </button>
             </div>

@@ -35,6 +35,7 @@ public class Webapp implements Handler, AutoCloseable {
             GET("/login", this::login),
             GET("/authcb", this::authcb),
             POST("/cancel", this::cancel),
+            GET("/settings", this::settings),
             notFoundHandler("404. Alas, there is nothing here."));
 
     final Handler handler;
@@ -152,6 +153,11 @@ public class Webapp implements Handler, AutoCloseable {
                     capture, butterflynet.getProgress(capture.id)));
         }
         return gson.toJson(captureProgressList);
+    }
+
+    Response settings(Request request) {
+        return render("settings.ftl",
+                "csrfToken", Csrf.token(request));
     }
 
     Response events(Request request) {

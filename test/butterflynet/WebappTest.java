@@ -14,15 +14,15 @@ import static org.junit.Assert.assertEquals;
 public class WebappTest {
     static Webapp webapp;
     static Db db;
+    static UserInfo user;
+    static String sessionId;
 
     @Test
-    public void test() {
-        UserInfo user = new UserInfo(0, "example.org", "testuser", "testuser", "test user", "test@example.org");
-        String sid = webapp.createSession(user, TimeUnit.MINUTES.toMillis(30));
-        long userId = db.findUserId(user.issuer, user.subject);
+    public void testSubmit() {
+       long userId = db.findUserId(user.issuer, user.subject);
 
         String target = "http://example.org/target";
-        webapp.submit(RequestBuilder.post("/").formParam("url", target).cookie("id", sid).build());
+        webapp.submit(RequestBuilder.post("/").formParam("url", target).cookie("id", sessionId).build());
 
         Db.Capture capture = db.recentCaptures().get(0);
         assertEquals(target, capture.url);
@@ -35,7 +35,9 @@ public class WebappTest {
         env.put("BUTTERFLYNET_DB_URL", "jdbc:h2:mem:WebappTest;MODE=MYSQL;INIT=CREATE SCHEMA IF NOT EXISTS \"public\"");
         webapp = new Webapp(new Config(env));
         db = webapp.butterflynet.dbPool.take();
-    }
+        user = new UserInfo(0, "example.org", "testuser", "testuser", "test user", "test@example.org");
+        sessionId = webapp.createSession(user, TimeUnit.MINUTES.toMillis(30));
+     }
 
     @AfterClass
     public static void teardown() {
