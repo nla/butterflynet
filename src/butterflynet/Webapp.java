@@ -36,6 +36,8 @@ public class Webapp implements Handler, AutoCloseable {
             GET("/authcb", this::authcb),
             POST("/cancel", this::cancel),
             GET("/settings", this::settings),
+            POST("/settings/allowed-media-types/create", this::createAllowedMediaType),
+            POST("/settings/allowed-media-types/delete", this::deleteAllowedMediaType),
             notFoundHandler("404. Alas, there is nothing here."));
 
     final Handler handler;
@@ -156,8 +158,11 @@ public class Webapp implements Handler, AutoCloseable {
     }
 
     Response settings(Request request) {
-        return render("settings.ftl",
-                "csrfToken", Csrf.token(request));
+        try (Db db = butterflynet.dbPool.take()) {
+            return render("settings.ftl",
+                    "csrfToken", Csrf.token(request),
+                    "allowedMediaTypes", db.listAllowedMediaTypes());
+        }
     }
 
     Response events(Request request) {
@@ -272,6 +277,23 @@ public class Webapp implements Handler, AutoCloseable {
         butterflynet.cancel(id);
         return seeOther(request.contextUri().toString());
     }
+
+    Response createAllowedMediaType(Request request) {
+        try (Db db = butterflynet.dbPool.take()) {
+            currentUser(db, request);
+            db.insertAllowedMediaType(request.formParam("mediaType").trim());
+        }
+        return seeOther(request.contextUri().resolve("settings").toString());
+    }
+
+    Response deleteAllowedMediaType(Request request) {
+        try (Db db = butterflynet.dbPool.take()) {
+            currentUser(db, request);
+            db.deleteAllowedMediaType(request.formParam("mediaType").trim());
+        }
+        return seeOther(request.contextUri().resolve("settings").toString());
+    }
+
 
     /**
      * Dump a copy of the stack trace to the client on uncaught exceptions.

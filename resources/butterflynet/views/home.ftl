@@ -1,9 +1,10 @@
 [@page title="Save to web archive"]
 
-<ul class="nav nav-pills pull-right">
-    <li><a href="settings"><i class="glyphicon glyphicon-cog"></i> Settings</a></li>
-</ul>
+
 <h3>Save to web archive</h3>
+
+<p>This tool captures standalone documents (PDF, RTF, Office) and makes them available immediately through
+<a href="http://webarchive.nla.gov.au/gov/">AGWA</a>.</p>
 
 <form method="post">
     <input name="csrfToken" value="${csrfToken}" type="hidden" id="csrfTokenField">

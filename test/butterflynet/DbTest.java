@@ -3,9 +3,7 @@ package butterflynet;
 import droute.Tokens;
 import org.junit.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class DbTest {
     static DbPool dbPool;
@@ -56,5 +54,13 @@ public class DbTest {
 
         long jimId = db.upsertUser("jim", "example.org", "joe", "Jim Testuser", "joe@example.org");
         assertEquals(joeId, jimId);
+    }
+
+    @Test
+    public void testAllowedMediaTypes() {
+        db.insertAllowedMediaType("hello/world");
+        assertTrue(db.listAllowedMediaTypes().contains("hello/world"));
+        db.deleteAllowedMediaType("hello/world");
+        assertFalse(db.listAllowedMediaTypes().contains("hello/world"));
     }
 }

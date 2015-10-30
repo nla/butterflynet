@@ -70,7 +70,9 @@ final class OAuth {
                     .buildGetRequest(url)
                     .setParser(json.createJsonObjectParser())
                     .execute();
-            return response.parseAs(UserInfo.class);
+            UserInfo user = response.parseAs(UserInfo.class);
+            user.issuer = serverUrl;
+            return user;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

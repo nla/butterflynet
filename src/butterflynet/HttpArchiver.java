@@ -25,6 +25,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 
@@ -85,7 +86,7 @@ public class HttpArchiver implements AutoCloseable {
         long position();
     }
 
-    Result archive(String url, ProgressTracker tracker) throws IOException, InterruptedException {
+    Result archive(String url, ProgressTracker tracker, Collection<String> allowedMediaTypes) throws IOException, InterruptedException {
         Result result = new Result();
 
         /*
@@ -105,6 +106,12 @@ public class HttpArchiver implements AutoCloseable {
             if (tracker != null) {
                 progressHack(tracker, contentLength, recorder.getRecordedInput());
             }
+
+            String contentType = parseContentType(response);
+            if (!allowedMediaTypes.contains(contentType)) {
+                throw new RuntimeException("File format '" + contentType + "' is not on the allowed list. Make sure the URL you're archiving is a PDF or Office document. If you need to archive a full web page or a new file format please contact Web Archiving for assistance.");
+            }
+
             recorder.getRecordedInput().readToEndOfContent(contentLength);
             recorder.close();
             recorder.closeRecorders();
@@ -124,6 +131,7 @@ public class HttpArchiver implements AutoCloseable {
         }
         return result;
     }
+
 
     /**
      * Unfortunately RecordingInputStream doesn't expose progress details.  For now lets hack around it by accessing
@@ -202,5 +210,13 @@ public class HttpArchiver implements AutoCloseable {
             }
         }
         return -1;
+    }
+
+    private String parseContentType(CloseableHttpResponse response) {
+        Header header = response.getLastHeader("content-type");
+        if (header != null) {
+            return header.getValue().split(";", 2)[0].trim();
+        }
+        return "application/octet-stream";
     }
 }

@@ -18,7 +18,7 @@ public abstract class Db implements AutoCloseable {
         dbi.registerMapper(new UserInfoMapper());
     }
 
-    public static class Capture {
+   public static class Capture {
         public final long id;
         public final String url;
         public final Date started;
@@ -129,6 +129,15 @@ public abstract class Db implements AutoCloseable {
 
     @SqlUpdate("UPDATE capture SET state = " + FAILED + ", reason = 'Cancelled' WHERE id = :id AND state = " + QUEUED)
     public abstract int cancelCapture(@Bind("id") long id);
+
+    @SqlQuery("SELECT media_type FROM allowed_media_type ORDER BY media_type ASC")
+    public abstract List<String> listAllowedMediaTypes();
+
+    @SqlUpdate("INSERT INTO allowed_media_type (media_type) VALUES (:mediaType)")
+    public abstract void insertAllowedMediaType(@Bind("mediaType") String mediaType);
+
+    @SqlUpdate("DELETE FROM allowed_media_type WHERE media_type = :mediaType")
+    public abstract void deleteAllowedMediaType(@Bind("mediaType") String mediaType);
 
     public abstract void close();
 

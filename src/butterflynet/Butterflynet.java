@@ -40,8 +40,10 @@ public class Butterflynet implements AutoCloseable {
     private void processQueue() {
         List<Db.Capture> captures;
         do {
+            List<String> allowedMediaTypes;
             try (Db db = dbPool.take()) {
                 captures = db.findCapturesToArchive(batchSize);
+                allowedMediaTypes = db.listAllowedMediaTypes();
             }
             for (Db.Capture capture : captures) {
                 try {
@@ -53,7 +55,7 @@ public class Butterflynet implements AutoCloseable {
 
                     HttpArchiver.Result result = archiver.archive(capture.url, (p) -> {
                         progressMap.put(capture.id, p);
-                    });
+                    }, allowedMediaTypes);
                     log.debug("Successfully archived capture id={} url={}", capture.id, capture.url);
                     try (Db db = dbPool.take()) {
                         db.setCaptureArchived(capture.id, result.timestamp, result.status, result.reason, result.size);

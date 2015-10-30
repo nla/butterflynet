@@ -1,3 +1,4 @@
+[#-- @ftlvariable name="request" type="droute.Request" --]
 [#macro page title]
 <!doctype html>
 <html>
@@ -10,6 +11,11 @@
 </head>
 <body>
     <div class="container main">
+        <ul class="nav nav-tabs pull-right">
+            <li [#if request.path() = '/']class="active"[/#if]><a href="."><i class="glyphicon glyphicon-th-list"></i> Captures</a></li>
+            <li [#if request.path() = '/settings']class="active"[/#if]><a href="settings"><i class="glyphicon glyphicon-cog"></i> Settings</a></li>
+        </ul>
+
         [#nested/]
     </div>
     <div class="bgcredit">

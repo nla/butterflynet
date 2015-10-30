@@ -3,26 +3,32 @@ package butterflynet;
 import com.google.api.client.util.Key;
 
 public class UserInfo {
-    public final long id;
+    public long id;
 
     /*
      * The @Key annotations below map the fields from the userinfo json response from the OpenID Connect server.
      */
 
     @Key("iss")
-    public final String issuer;
+    public String issuer;
 
     @Key("sub")
-    public final String subject;
+    public String subject;
 
     @Key("preferred_username")
-    public final String username;
+    public String username;
 
     @Key
-    public final String name;
+    public String name;
 
     @Key
-    public final String email;
+    public String email;
+
+    /**
+     * Default constructor for JSON deserialization.
+     */
+    public UserInfo() {
+    }
 
     public UserInfo(long id, String issuer, String subject, String username, String name, String email) {
         this.id = id;
