@@ -142,6 +142,7 @@ abbr[title] {
      * min-width defaults to width of the longest word.
      * https://bugzilla.mozilla.org/show_bug.cgi?id=1136818#c10
      */
-    word-wrap: break-word;
     min-width: 0px;
+    word-wrap: break-word;
+    word-break: break-all;
 }
