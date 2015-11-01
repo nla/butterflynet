@@ -1,5 +1,5 @@
 CREATE TABLE user (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(64) NOT NULL,
     issuer VARCHAR(100) NOT NULL,
     subject VARCHAR(100) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE capture (
 
 CREATE TABLE session (
     id VARCHAR(32) PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id BIGINT NOT NULL,
     expiry BIGINT NOT NULL,
 
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
