@@ -1,5 +1,5 @@
 CREATE TABLE allowed_media_type (
-  media_type VARCHAR(256) PRIMARY KEY
+  media_type VARCHAR(100) PRIMARY KEY
 );
 
 INSERT INTO allowed_media_type (media_type) VALUES
