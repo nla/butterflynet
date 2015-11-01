@@ -1,8 +1,8 @@
 CREATE TABLE user (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(64) NOT NULL,
-    issuer VARCHAR(256) NOT NULL,
-    subject VARCHAR(256) NOT NULL,
+    issuer VARCHAR(100) NOT NULL,
+    subject VARCHAR(100) NOT NULL,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     UNIQUE issuer_subject_unique (issuer, subject)
