@@ -54,7 +54,7 @@
             <div class="url-box archive-url" if="{capture.state != 'FAILED'}">
                 <span>Archive:</span>
                 <a href="{capture.archiveUrl}">{capture.archiveUrl}</a>
-                <button class="btn btn-default clipboard-button" data-clipboard-text="{capture.originalUrl}">
+                <button class="btn btn-default clipboard-button" data-clipboard-text="{capture.calendarUrl}">
                     <i class="glyphicon glyphicon-copy"></i> Copy Archive Link
                 </button>
             </div>
