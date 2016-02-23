@@ -51,12 +51,20 @@ final class OAuth {
         }
     }
 
+    /**
+     * Generates the OIDC server URL to redirect to for the login page.
+     */
     String authUrl(String csrfToken) {
         return authFlow.newAuthorizationUrl()
                 .setState(sha256(csrfToken))
                 .build();
     }
 
+    /**
+     * Called when the OIDC server redirects back to us after the user is logged in.
+     * We ask the OIDC server for their details (username, email address etc) and
+     * return it to store in our user session.
+     */
     UserInfo authCallback(String csrfToken, String authCode, String state) {
         if (!state.equals(sha256(csrfToken))) {
             throw new IllegalArgumentException("Incorrect OAuth state, possible CSRF attack");
