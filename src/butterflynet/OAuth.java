@@ -41,16 +41,6 @@ final class OAuth {
                 serverUrl + "/authorize").build();
     }
 
-    private String sha256(String data) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            digest.update(data.getBytes(UTF_8));
-            return Base64.getUrlEncoder().encodeToString(digest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /**
      * Generates the OIDC server URL to redirect to for the login page.
      */
@@ -83,6 +73,19 @@ final class OAuth {
             return user;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+    
+    /**
+     * Calculate a SHA-256 digest of a string.
+     */
+    private String sha256(String data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(data.getBytes(UTF_8));
+            return Base64.getUrlEncoder().encodeToString(digest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 }
