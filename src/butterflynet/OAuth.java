@@ -41,22 +41,20 @@ final class OAuth {
                 serverUrl + "/authorize").build();
     }
 
-    private String sha256(String data) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            digest.update(data.getBytes(UTF_8));
-            return Base64.getUrlEncoder().encodeToString(digest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
+    /**
+     * Generates the OIDC server URL to redirect to for the login page.
+     */
     String authUrl(String csrfToken) {
         return authFlow.newAuthorizationUrl()
                 .setState(sha256(csrfToken))
                 .build();
     }
 
+    /**
+     * Called when the OIDC server redirects back to us after the user is logged in.
+     * We ask the OIDC server for their details (username, email address etc) and
+     * return it to store in our user session.
+     */
     UserInfo authCallback(String csrfToken, String authCode, String state) {
         if (!state.equals(sha256(csrfToken))) {
             throw new IllegalArgumentException("Incorrect OAuth state, possible CSRF attack");
@@ -75,6 +73,19 @@ final class OAuth {
             return user;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+    
+    /**
+     * Calculate a SHA-256 digest of a string.
+     */
+    private String sha256(String data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(data.getBytes(UTF_8));
+            return Base64.getUrlEncoder().encodeToString(digest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 }
