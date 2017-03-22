@@ -61,20 +61,26 @@ public class Main {
     }
 
     private static void runWebServer(int port, String host, boolean inheritSocket) throws IOException {
-        Handler handler = new Webapp(); // new ShotgunHandler("butterflynet.Webapp");
+        Webapp webapp = new Webapp(); // new ShotgunHandler("butterflynet.Webapp");
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                webapp.close();
+            }
+        }));
         if (inheritSocket) {
             Channel channel = System.inheritedChannel();
             if (channel != null && channel instanceof ServerSocketChannel) {
-                new NanoServer(handler, ((ServerSocketChannel) channel).socket()).startAndJoin();
+                new NanoServer(webapp, ((ServerSocketChannel) channel).socket()).startAndJoin();
                 System.exit(0);
             }
             System.err.println("When -i is given STDIN must be a ServerSocketChannel, but got " + channel);
             System.exit(1);
         }
         if (host != null) {
-            new NanoServer(handler, host, port).startAndJoin();
+            new NanoServer(webapp, host, port).startAndJoin();
         } else {
-            new NanoServer(handler, port).startAndJoin();
+            new NanoServer(webapp, port).startAndJoin();
         }
     }
 }
