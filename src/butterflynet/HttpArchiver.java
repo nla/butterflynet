@@ -126,9 +126,9 @@ public class HttpArchiver implements AutoCloseable {
             warc.checkSize();
             URI responseId = writeResponse(warc, url, timestamp, recorder);
             writeRequest(warc, url, timestamp, recorder, responseId);
-            warcPool.flush(); // reduce chance of a half-written record existing on disk at any given time
         } finally {
             warcPool.returnFile(warc);
+            warcPool.flush(); // reduce chance of a half-written record existing on disk at any given time
         }
         return result;
     }
