@@ -210,7 +210,6 @@ public class Webapp implements Handler, AutoCloseable {
         public final long id;
         public final String originalUrl;
         public final String archiveUrl;
-        public final String calendarUrl;
         public final Date started;
         public final String length;
         public final String position;
@@ -225,11 +224,9 @@ public class Webapp implements Handler, AutoCloseable {
             originalUrl = capture.url;
             if (replayUrl.isEmpty()) {
                 archiveUrl = originalUrl;
-                calendarUrl = originalUrl;
             } else {
                 String timestamp = capture.archived.toInstant().atOffset(ZoneOffset.UTC).format(WAYBACK_DATE_FORMAT);
                 archiveUrl = replayUrl + timestamp + "/" + originalUrl;
-                calendarUrl = replayUrl + "*" + "/" + originalUrl;
             }
             started = capture.started;
             state = capture.getStateName();
