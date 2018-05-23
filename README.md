@@ -1,5 +1,7 @@
 # butterflynet
 
+Collects raw documents (PDF, Word) and spits out a link to the web archive. Not useful for HTML.
+
 ### Configuration
 
 Environment Variable|Default|Description
