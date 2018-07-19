@@ -11,6 +11,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.security.MessageDigest;
@@ -83,7 +84,7 @@ final class OAuth {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update(data.getBytes(UTF_8));
-            return Base64.getUrlEncoder().encodeToString(digest.digest());
+            return DatatypeConverter.printHexBinary(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
