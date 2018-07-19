@@ -9,30 +9,37 @@ import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
+import java.util.Arrays;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 final class OAuth {
     final NetHttpTransport http = new NetHttpTransport();
-    final JsonFactory json = new GsonFactory();
+    final JsonFactory json = new JacksonFactory();
     final AuthorizationCodeFlow authFlow;
 
     final String serverUrl;
     final String clientId;
     final String clientSecret;
+    final String userinfoUrl;
 
     OAuth(String serverUrl, String clientId, String clientSecret) {
         this.serverUrl = serverUrl;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+
+        if (serverUrl.startsWith("https://login.microsoftonline.com/")) {
+            userinfoUrl = "https://login.windows.net/common/openid/userinfo";
+        } else {
+            userinfoUrl = serverUrl + "/userinfo";
+        }
 
         authFlow = new AuthorizationCodeFlow.Builder(BearerToken.authorizationHeaderAccessMethod(),
                 http, json,
@@ -48,6 +55,7 @@ final class OAuth {
     String authUrl(String csrfToken) {
         return authFlow.newAuthorizationUrl()
                 .setState(sha256(csrfToken))
+                .setScopes(Arrays.asList("openid"))
                 .build();
     }
 
@@ -61,10 +69,12 @@ final class OAuth {
             throw new IllegalArgumentException("Incorrect OAuth state, possible CSRF attack");
         }
         try {
-            TokenResponse tokenResponse = authFlow.newTokenRequest(authCode).execute();
+            TokenResponse tokenResponse = authFlow.newTokenRequest(authCode)
+                    .setGrantType("authorization_code")
+                    .execute();
             Credential credential = new Credential(BearerToken.authorizationHeaderAccessMethod())
                     .setAccessToken(tokenResponse.getAccessToken());
-            GenericUrl url = new GenericUrl(serverUrl + "/userinfo");
+            GenericUrl url = new GenericUrl(userinfoUrl);
             HttpResponse response = http.createRequestFactory(credential)
                     .buildGetRequest(url)
                     .setParser(json.createJsonObjectParser())

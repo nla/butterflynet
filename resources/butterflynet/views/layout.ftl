@@ -12,6 +12,7 @@
 <body>
     <div class="container main">
         <ul class="nav nav-tabs pull-right">
+            [#if user??]<li><a class="disabled"><i class="glyphicon glyphicon-user"></i> ${user.name}</a></li>[/#if]
             <li [#if request.path() = '/']class="active"[/#if]><a href="."><i class="glyphicon glyphicon-th-list"></i> Captures</a></li>
             <li [#if request.path() = '/settings']class="active"[/#if]><a href="settings"><i class="glyphicon glyphicon-cog"></i> Settings</a></li>
         </ul>
