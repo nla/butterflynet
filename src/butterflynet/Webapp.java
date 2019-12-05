@@ -91,16 +91,24 @@ public class Webapp implements Handler, AutoCloseable {
 
     Response login(Request request) {
         if (oauth != null) {
-            return temporaryRedirect(oauth.authUrl(Csrf.token(request)));
+            return temporaryRedirect(oauth.authUrl(Csrf.token(request), authcbUrl(request)));
         } else {
             return createSession(request, new UserInfo(0, "anonymous", "anonymous", "anonymous", "Anonymous", "anonymous@example.org"));
         }
     }
 
+    private String authcbUrl(Request request) {
+        String scheme = request.header("X-Forwarded-Proto");
+        if (scheme == null) scheme = "http";
+        return scheme + "://" + request.header("Host") +
+                request.contextPath().replaceFirst("/+$", "") + "/authcb";
+    }
+
     Response authcb(Request request) {
         UserInfo userInfo = oauth.authCallback(Csrf.token(request),
                 request.queryParam("code"),
-                request.queryParam("state"));
+                request.queryParam("state"),
+                authcbUrl(request));
         return createSession(request, userInfo);
     }
 
