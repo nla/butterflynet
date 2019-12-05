@@ -4,7 +4,7 @@
 <h3>Save to web archive</h3>
 
 <p>This tool captures standalone documents (PDF, RTF, Office) and makes them available immediately through
-<a href="http://webarchive.nla.gov.au/gov/">AGWA</a>.</p>
+the <a href="https://webarchive.nla.gov.au/">Australian Web Archive</a>.</p>
 
 <form method="post">
     <input name="csrfToken" value="${csrfToken}" type="hidden" id="csrfTokenField">
