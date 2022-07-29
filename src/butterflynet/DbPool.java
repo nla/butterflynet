@@ -42,9 +42,7 @@ public class DbPool implements AutoCloseable {
     }
 
     public void migrate() {
-        Flyway flyway = new Flyway();
-        flyway.setDataSource(ds);
-        flyway.setLocations("butterflynet/migrations");
+        Flyway flyway = Flyway.configure().dataSource(ds).locations("butterflynet/migrations").load();
         flyway.migrate();
     }
 

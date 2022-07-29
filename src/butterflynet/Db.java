@@ -86,7 +86,7 @@ public abstract class Db implements AutoCloseable {
     @GetGeneratedKeys
     public abstract long insertCapture(@Bind("url") String url, @Bind("started") Date started, @Bind("userId") long userId);
 
-    @SqlQuery("SELECT capture.*, user.username FROM capture LEFT JOIN user ON user.id = capture.user_id ORDER BY capture.id DESC LIMIT 50")
+    @SqlQuery("SELECT capture.*, \"user\".username FROM capture LEFT JOIN \"user\" ON \"user\".id = capture.user_id ORDER BY capture.id DESC LIMIT 50")
     public abstract List<CaptureDetailed> recentCaptures();
 
     @SqlQuery("SELECT * FROM capture WHERE state IN (" + QUEUED + ", " + DOWNLOADING + ") LIMIT :limit")
@@ -101,7 +101,7 @@ public abstract class Db implements AutoCloseable {
     @SqlUpdate("UPDATE capture SET reason = :message, state = " + FAILED + " WHERE id = :id")
     public abstract void setCaptureFailed(@Bind("id") long id, @Bind("date") Date date, @Bind("message") String message);
 
-    @SqlUpdate("INSERT INTO user (username, issuer, subject, name, email) " +
+    @SqlUpdate("INSERT INTO \"user\" (username, issuer, subject, name, email) " +
             "VALUES (:username, :issuer, :subject, :name, :email) " +
             "ON DUPLICATE KEY UPDATE " +
             "    issuer = VALUES(issuer), " +
@@ -110,7 +110,7 @@ public abstract class Db implements AutoCloseable {
             "    email = VALUES(email)")
     public abstract int upsertUserInternal(@Bind("username") String username, @Bind("issuer") String issuer, @Bind("subject") String subject, @Bind("name") String name, @Bind("email") String email);
 
-    @SqlQuery("SELECT user.id FROM user WHERE issuer = :issuer AND subject = :subject")
+    @SqlQuery("SELECT \"user\".id FROM \"user\" WHERE issuer = :issuer AND subject = :subject")
     public abstract long findUserId(@Bind("issuer") String issuer, @Bind("subject") String subject);
 
     long upsertUser(String username, String issuer, String subject, String name, String email) {
@@ -118,7 +118,7 @@ public abstract class Db implements AutoCloseable {
         return findUserId(issuer, subject);
     }
 
-    @SqlQuery("SELECT user.* FROM user, session WHERE user.id = session.user_id AND session.id = :sessionId")
+    @SqlQuery("SELECT \"user\".* FROM \"user\", session WHERE \"user\".id = session.user_id AND session.id = :sessionId")
     public abstract UserInfo findUserBySessionId(@Bind("sessionId") String sessionId);
 
     @SqlUpdate("INSERT INTO session (id, user_id, expiry) VALUES (:sessionId, :userId, :expiry)")

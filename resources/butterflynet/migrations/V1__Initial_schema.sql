@@ -1,4 +1,4 @@
-CREATE TABLE user (
+CREATE TABLE "user" (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(64) NOT NULL,
     issuer VARCHAR(100) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE capture (
     user_id BIGINT NOT NULL,
 
     PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES user(id)
+    FOREIGN KEY (user_id) REFERENCES "user"(id)
 );
 
 CREATE TABLE session (
@@ -28,7 +28,7 @@ CREATE TABLE session (
     user_id BIGINT NOT NULL,
     expiry BIGINT NOT NULL,
 
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
 );
 
 CREATE INDEX session_expiry ON session (expiry);

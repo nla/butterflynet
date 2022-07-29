@@ -86,7 +86,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>3.2.1</version>
+            <version>9.0.2</version>
         </dependency>
 
         <dependency>
@@ -275,4 +275,11 @@
             <version>2.12.6.1</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>nla-internal</id>
+            <url>https://dev.nla.gov.au/maven/</url>
+        </repository>
+    </repositories>
 </project>
